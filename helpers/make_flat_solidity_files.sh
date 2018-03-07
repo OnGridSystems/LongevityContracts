@@ -2,6 +2,6 @@
 cd helpers
 cd oracles-combine-solidity
 npm install
-npm start "../../contracts/NodeToken.sol"
+npm start "../../contracts/LongevityToken.sol"
 mv ./out/*.sol ../../
 rm -f ./out/*.sol

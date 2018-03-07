@@ -4,9 +4,9 @@ pragma solidity ^0.4.18;
 import "./token/StandardToken.sol";
 
 
-contract NodeToken is StandardToken {
-    string public name = "NodePower";
-    string public symbol = "NODE";
+contract LongevityToken is StandardToken {
+    string public name = "Longevity";
+    string public symbol = "LTY";
     uint8 public decimals = 2;
     bool public mintingFinished = false;
     mapping (address => bool) owners;
@@ -20,7 +20,7 @@ contract NodeToken is StandardToken {
     event MinterRemoved(address indexed removedMinter);
     event Burn(address indexed burner, uint256 value);
 
-    function NodeToken() public {
+    function LongevityToken() public {
         owners[msg.sender] = true;
     }
 

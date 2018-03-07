@@ -1,10 +1,10 @@
-# NodePower contracts
-Nodepower ethereum ecosystem consists of
+# Longevity contracts
+Longevity ethereum ecosystem consists of
 * Main token - Ethereum-based ERC-20 compatible digital asset
 * Crowdsale contract for pre-ICO round
 
 ## Token contract
-[NodePowerToken.sol](contracts/NodeToken.sol)
+[LongevityToken.sol](contracts/LongevityToken.sol)
 
 ## Pre-ICO crowdsale
 WORK in progress...
