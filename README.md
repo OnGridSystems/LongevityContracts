@@ -7,7 +7,7 @@ Longevity ethereum ecosystem consists of
 [LongevityToken.sol](contracts/LongevityToken.sol)
 
 ## Pre-ICO crowdsale
-WORK in progress...
+[LongevityCrowdsale.sol](contracts/LongevityCrowdsale.sol)
 
 # Testing
 The simplest way to test smartcontracts is interactively in truffle
