@@ -73,6 +73,10 @@ contract LongevityCrowdsale {
     event BotAdded(address indexed newBot);
     event BotRemoved(address indexed removedBot);
 
+    // Phase edit events
+    event TotalPhasesChanged(uint value);
+    event SetPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent);
+
     function LongevityCrowdsale(address _tokenAddress, uint256 _initialRate) public {
         require(_tokenAddress != address(0));
         token = LongevityToken(_tokenAddress);
@@ -220,6 +224,23 @@ contract LongevityCrowdsale {
         wallet.transfer(msg.value);
     }
 
+    //Change number of phases
+    function setTotalPhases(uint value) onlyOwner public {
+        totalPhases = value;
+        TotalPhasesChanged(value);
+    }
 
+    // Set phase: index and values
+    function setPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent) onlyOwner public {
+        require(index <= totalPhases);
+        phases[index] = Phase(_startTime, _endTime, _bonusPercent);
+        SetPhase(index, _startTime, _endTime, _bonusPercent);
+    }
 
+    // Delete phase
+    function delPhase(uint index) onlyOwner public {
+        require(index <= totalPhases);
+        delete phases[index];
+        SetPhase(index, 0, 0, 0);
+    }
 }

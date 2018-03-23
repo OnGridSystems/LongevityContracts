@@ -219,6 +219,35 @@ contract('LongevityCrowdsale', function (accounts) {
           assert.equal(result, accounts[3]);
       });
   });
+  // Phases editor
+  it('Change phase total to 4', function () {
+      return LongevityCrowdsale.deployed().then(function (instance) {
+          return instance.setTotalPhases(4);
+      }).then(function (result) {
+          assert.equal(result['logs'][0]['event'], 'TotalPhasesChanged');
+      });
+  });
+  it('Set phase 0x1 to 1522022400, 1525219199, 30', function () {
+      return LongevityCrowdsale.deployed().then(function (instance) {
+          return instance.setPhase(1, 1522022400, 1525219199, 30);
+      }).then(function (result) {
+          assert.equal(result['logs'][0]['event'], 'SetPhase');
+      });
+  });
+  it('Check phase 0x1 value is 30', function () {
+      return LongevityCrowdsale.deployed().then(function (instance) {
+          return instance.getBonusPercent(1522022600);
+      }).then(function (result) {
+          assert.equal(result, 30);
+      });
+  });
+  it('Delete phase 0x0', function () {
+      return LongevityCrowdsale.deployed().then(function (instance) {
+          return instance.delPhase(0);
+      }).then(function (result) {
+          assert.equal(result['logs'][0]['event'], 'SetPhase');
+      });
+  });
 });
 
 /*
