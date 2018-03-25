@@ -11,6 +11,13 @@ contract LongevityToken is StandardToken {
     bool public mintingFinished = false;
     mapping (address => bool) owners;
     mapping (address => bool) minters;
+    // tap to limit mint speed
+    struct Tap {
+        uint256 startTime; // reference time point to start measuring
+        uint256 tokensIssued; // how much tokens issued from startTime
+        uint256 mintSpeed; // token fractions per second
+    }
+    Tap public mintTap;
 
     event Mint(address indexed to, uint256 amount);
     event MintFinished();
@@ -19,6 +26,7 @@ contract LongevityToken is StandardToken {
     event MinterAdded(address indexed newMinter);
     event MinterRemoved(address indexed removedMinter);
     event Burn(address indexed burner, uint256 value);
+    event MintTapSet(uint256 startTime, uint256 mintSpeed);
 
     function LongevityToken() public {
         owners[msg.sender] = true;
@@ -32,6 +40,7 @@ contract LongevityToken is StandardToken {
      */
     function mint(address _to, uint256 _amount) onlyMinter public returns (bool) {
         require(!mintingFinished);
+        passThroughTap(_amount);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
         Mint(_to, _amount);
@@ -115,5 +124,35 @@ contract LongevityToken is StandardToken {
     modifier onlyMinter() {
         require(minters[msg.sender]);
         _;
+    }
+
+    /**
+     * @dev passThroughTap allows minting tokens within the defined speed limit.
+     * Throws if requested more than allowed.
+     */
+    function passThroughTap(uint256 _tokensRequested) internal {
+        require(_tokensRequested <= getTapRemaining());
+        mintTap.tokensIssued = mintTap.tokensIssued.add(_tokensRequested);
+    }
+
+    /**
+     * @dev Returns remaining amount of tokens allowed at the moment
+     */
+    function getTapRemaining() public view returns (uint256) {
+        uint256 tapTime = now.sub(mintTap.startTime).add(1);
+        uint256 totalTokensAllowed = tapTime.mul(mintTap.mintSpeed);
+        uint256 tokensRemaining = totalTokensAllowed.sub(mintTap.tokensIssued);
+        return tokensRemaining;
+    }
+
+    /**
+     * @dev (Re)sets mint tap parameters
+     * @param _mintSpeed Allowed token amount to mint per second
+     */
+    function setMintTap(uint256 _mintSpeed) onlyOwner public {
+        mintTap.startTime = now;
+        mintTap.tokensIssued = 0;
+        mintTap.mintSpeed = _mintSpeed;
+        MintTapSet(mintTap.startTime, mintTap.mintSpeed);
     }
 }
