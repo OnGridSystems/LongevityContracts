@@ -8,6 +8,7 @@ contract LongevityToken is StandardToken {
     string public name = "Longevity";
     string public symbol = "LTY";
     uint8 public decimals = 2;
+    uint256 public cap = 2**256 - 1; // maximum possible uint256. Decreased on finalization
     bool public mintingFinished = false;
     mapping (address => bool) owners;
     mapping (address => bool) minters;
@@ -27,6 +28,7 @@ contract LongevityToken is StandardToken {
     event MinterRemoved(address indexed removedMinter);
     event Burn(address indexed burner, uint256 value);
     event MintTapSet(uint256 startTime, uint256 mintSpeed);
+    event SetCap(uint256 currectTotalSupply, uint256 cap);
 
     function LongevityToken() public {
         owners[msg.sender] = true;
@@ -40,6 +42,7 @@ contract LongevityToken is StandardToken {
      */
     function mint(address _to, uint256 _amount) onlyMinter public returns (bool) {
         require(!mintingFinished);
+        require(totalSupply.add(_amount) <= cap);
         passThroughTap(_amount);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
@@ -154,5 +157,14 @@ contract LongevityToken is StandardToken {
         mintTap.tokensIssued = 0;
         mintTap.mintSpeed = _mintSpeed;
         MintTapSet(mintTap.startTime, mintTap.mintSpeed);
+    }
+    /**
+     * @dev sets token Cap (maximum possible totalSupply) on Crowdsale finalization
+     * Cap will be set to (sold tokens + team tokens) * 2
+     */
+    function setCap() onlyOwner public {
+        assert(cap == 2**256 - 1); // if was not set yet
+        cap = totalSupply.mul(2);
+        SetCap(totalSupply, cap);
     }
 }

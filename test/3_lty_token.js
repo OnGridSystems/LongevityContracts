@@ -141,6 +141,49 @@ contract('LongevityToken', function (accounts) {
             assert.equal(result['logs'][0]['event'], 'Mint');
         });
     });
+    it('Check not finalized Cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.cap();
+        }).then(function (result) {
+            assert.equal(result, Math.pow(2,256) - 1);
+        });
+    });
+    it('Check total Supply', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.totalSupply();
+        }).then(function (result) {
+            assert.equal(result,49099);
+        });
+    });
+    it('Set cap (on presale finalize)', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.setCap();
+        }).then(function (result) {
+            assert.equal(result['logs'][0]['event'], 'SetCap');
+        });
+    });
+    it('Cap should be totalSupply x 2 after setCap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.cap();
+        }).then(function (result) {
+            assert.equal(result, 49099 * 2);
+        });
+    });
+    it('Total Supply shouldn\'t change after set cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.totalSupply();
+        }).then(function (result) {
+            assert.equal(result,49099);
+        });
+    });
+    it('Unable to mint over finalized cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.mint(accounts[0], 49100, {from: accounts[0]});
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
+    });
     it('Acc0 (owner, minter) can transfer tokens to another Acc9', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.transfer(accounts[9], 4000);
