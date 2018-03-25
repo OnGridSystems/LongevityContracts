@@ -85,6 +85,41 @@ contract('LongevityToken', function (accounts) {
       assert.equal(result['logs'][0]['event'], 'MinterAdded');
     });
   });
+  it('Check mintTap is not set yet', function () {
+      return LongevityToken.deployed().then(function (instance) {
+          return instance.mintTap();
+      }).then(function (result) {
+          assert.equal(result[2], 0);
+      });
+  });
+  it('Check getTapRemaining is 0', function () {
+      return LongevityToken.deployed().then(function (instance) {
+          return instance.getTapRemaining();
+      }).then(function (result) {
+          assert.equal(result, 0);
+      });
+  });
+  it('Acc0 (owner, minter) sets tap to 10000000', function () {
+      return LongevityToken.deployed().then(function (instance) {
+          return instance.setMintTap(10000000, {from: accounts[0]});
+      }).then(function (result) {
+          assert.equal(result['logs'][0]['event'], 'MintTapSet');
+      });
+  });
+  it('Check mintTap is set to 10000000', function () {
+      return LongevityToken.deployed().then(function (instance) {
+          return instance.mintTap();
+      }).then(function (result) {
+          assert.equal(result[2], 10000000);
+      });
+  });
+  it('Check getTapRemaining is bigger than 0', function () {
+      return LongevityToken.deployed().then(function (instance) {
+          return instance.getTapRemaining();
+      }).then(function (result) {
+          assert(result > 0);
+      });
+  });
   it('First Acc0 (owner, minter) now able to mint to himself', function () {
     return LongevityToken.deployed().then(function (instance) {
       return instance.mint(accounts[0], 12345, {from: accounts[0]});
@@ -336,7 +371,7 @@ contract('LongevityToken', function (accounts) {
 
 /*
 useful snippets for interactive use in truffle develop console
- LongevityPowerToken.deployed().then(function(instance) {return instance.totalSupply});
+ LongevityToken.deployed().then(function(instance) {return instance.totalSupply});
  LongevityPowerToken.deployed().then(function(instance) {return instance.mint(web3.eth.accounts[0], 10000)});
  LongevityPowerToken.deployed().then(function(instance) {return instance.mint(web3.eth.accounts[1], 10000, {from: web3.eth.accounts[1]})});
 LongevityPowerToken.deployed().then(function(instance) {return instance.owner()});
