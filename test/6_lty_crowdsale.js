@@ -173,9 +173,10 @@ contract('LongevityCrowdsale', function (accounts) {
     it('Owner updates rate in non-allowed limits +11%', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.setRate(158098);
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Rate shouldnt change after err. update', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
@@ -201,9 +202,10 @@ contract('LongevityCrowdsale', function (accounts) {
     it('Owner updates rate in non-allowed limits -11%', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.setRate(115354);
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Rate shouldnt change after err. update', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
@@ -215,9 +217,10 @@ contract('LongevityCrowdsale', function (accounts) {
     it('Non-owner prohibited to update bots list', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.addBot(accounts[1], {from: accounts[1]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Owner adds Acc1 as the bot', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
@@ -250,9 +253,10 @@ contract('LongevityCrowdsale', function (accounts) {
     it('Just removed bot (Ex-owner) prohibited to update rate', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.setRate(141277);
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Check rate didnt change after err. update', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
@@ -264,9 +268,10 @@ contract('LongevityCrowdsale', function (accounts) {
     it('Non-owner prohibited to update wallet', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.setWallet(accounts[3], {from: accounts[1]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Wallet collecting ethers not changed after err update', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
