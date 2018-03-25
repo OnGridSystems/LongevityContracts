@@ -32,8 +32,8 @@ contract LongevityCrowdsale {
     // Phases list, see schedule in constructor
     mapping (uint => Phase) phases;
 
-    // The total number of phases (0...5)
-    uint public totalPhases = 6;
+    // The total number of phases
+    uint public totalPhases = 0;
 
     // Description for each phase
     struct Phase {
@@ -76,6 +76,7 @@ contract LongevityCrowdsale {
     // Phase edit events
     event TotalPhasesChanged(uint value);
     event SetPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent);
+    event DelPhase(uint index);
 
     function LongevityCrowdsale(address _tokenAddress, uint256 _initialRate) public {
         require(_tokenAddress != address(0));
@@ -108,6 +109,7 @@ contract LongevityCrowdsale {
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
         require(msg.value != 0);
+        require(isInPhase(now));
 
         uint256 currentBonusPercent = getBonusPercent(now);
 
@@ -130,12 +132,22 @@ contract LongevityCrowdsale {
     // If phase exists return corresponding bonus for the given date
     // else return 0 (percent)
     function getBonusPercent(uint256 datetime) public view returns (uint256) {
+        require(isInPhase(datetime));
         for (uint i = 0; i < totalPhases; i++) {
             if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
                 return phases[i].bonusPercent;
             }
         }
         return 0;
+    }
+
+    // If phase exists for the given date return true
+    function isInPhase(uint256 datetime) public view returns (bool) {
+        for (uint i = 0; i < totalPhases; i++) {
+            if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
+                return true;
+            }
+        }
     }
 
     // set rate
@@ -241,6 +253,6 @@ contract LongevityCrowdsale {
     function delPhase(uint index) onlyOwner public {
         require(index <= totalPhases);
         delete phases[index];
-        SetPhase(index, 0, 0, 0);
+        DelPhase(index);
     }
 }
