@@ -294,7 +294,7 @@ contract('LongevityCrowdsale', function (accounts) {
             assert.equal(result, accounts[3]);
         });
     });
-    it('USD raised changed after payment recive', function () {
+    it('USD raised changed after payment receive', function () {
         return LongevityCrowdsale.deployed().then(function (instance) {
             return instance.USDcRaised.call();
         }).then(function (result) {
@@ -306,6 +306,34 @@ contract('LongevityCrowdsale', function (accounts) {
             return instance.delWallet(0);
         }).then(function (result) {
             assert.equal(result['logs'][0]['event'], 'WalletRemoved');
+        });
+    });
+    it('Non-owner prohibited to add Cashier', function () {
+        return LongevityCrowdsale.deployed().then(function (instance) {
+            return instance.addCashier(accounts[5], {from: accounts[1]});
+        }).then(assert.fail).catch(function (error) {
+            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+        });
+    });
+    it('Non-cashier unable to do offChainPurchase including owner', function () {
+        return LongevityCrowdsale.deployed().then(function (instance) {
+            return instance.offChainPurchase(accounts[7], 100, 1, {from: accounts[0]});
+        }).then(assert.fail).catch(function (error) {
+            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+        });
+    });
+    it('Non-cashier unable to do offChainPurchase', function () {
+        return LongevityCrowdsale.deployed().then(function (instance) {
+            return instance.offChainPurchase(accounts[7], 100, 1, {from: accounts[5]});
+        }).then(assert.fail).catch(function (error) {
+            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+        });
+    });
+    it('Owner is able to add Acc5 as a Cashier', function () {
+        return LongevityCrowdsale.deployed().then(function (instance) {
+            return instance.addCashier(accounts[5]);
+        }).then(function (result) {
+            assert.equal(result['logs'][0]['event'], 'CashierAdded');
         });
     });
     it('Wallets list decrease', function () {

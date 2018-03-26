@@ -23,6 +23,9 @@ contract LongevityCrowdsale {
     // External bots updating rates
     mapping (address => bool) public bots;
 
+    // Cashiers responsible for manual token issuance
+    mapping (address => bool) public cashiers;
+
     // USD cents per ETH exchange rate
     uint256 public rateUSDcETH;
 
@@ -61,6 +64,7 @@ contract LongevityCrowdsale {
      * @param amount amount of tokens purchased
      */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 bonusPercent, uint256 amount);
+    event OffChainTokenPurchase(address indexed beneficiary, uint256 tokensSold, uint256 USDcAmount);
 
     // event for rate update logging
     event RateUpdate(uint256 rate);
@@ -76,6 +80,10 @@ contract LongevityCrowdsale {
     // bot management events
     event BotAdded(address indexed newBot);
     event BotRemoved(address indexed removedBot);
+
+    // cashier management events
+    event CashierAdded(address indexed newBot);
+    event CashierRemoved(address indexed removedBot);
 
     // Phase edit events
     event TotalPhasesChanged(uint value);
@@ -122,6 +130,14 @@ contract LongevityCrowdsale {
         TokenPurchase(msg.sender, beneficiary, weiAmount, currentBonusPercent, tokens);
 
         forwardFunds();
+    }
+
+    // Sell any amount of tokens for cash or CryptoCurrency
+    function offChainPurchase(address beneficiary, uint256 tokensSold, uint256 USDcAmount) onlyCashier public {
+        require(beneficiary != address(0));
+        USDcRaised = USDcRaised.add(USDcAmount);
+        token.mint(beneficiary, tokensSold);
+        OffChainTokenPurchase(beneficiary, tokensSold, USDcAmount);
     }
 
     // If phase exists return corresponding bonus for the given date
@@ -202,6 +218,32 @@ contract LongevityCrowdsale {
      */
     modifier onlyBot() {
         require(bots[msg.sender]);
+        _;
+    }
+
+    /**
+     * @dev Adds cashier account responsible for manual token issuance
+     * @param _address The address of the Cashier
+     */
+    function addCashier(address _address) onlyOwner public {
+        cashiers[_address] = true;
+        CashierAdded(_address);
+    }
+
+    /**
+     * @dev Removes cashier account responsible for manual token issuance
+     * @param _address The address of the Cashier
+     */
+    function delCashier(address _address) onlyOwner public {
+        cashiers[_address] = false;
+        CashierRemoved(_address);
+    }
+
+    /**
+     * @dev Throws if called by any account other than Cashier.
+     */
+    modifier onlyCashier() {
+        require(cashiers[msg.sender]);
         _;
     }
 
