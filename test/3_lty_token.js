@@ -11,28 +11,28 @@ contract('LongevityToken', function (accounts) {
     it('Acc0 (owner by constructor) can\'t mint tokens to himself until it added to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000);
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc0 (owner by constructor) can\'t mint tokens to non-owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[1], 500);
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc9 (nobody) can\'t mint tokens', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc9 (nobody) can\'t add owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.addOwner(accounts[1], {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
@@ -53,21 +53,21 @@ contract('LongevityToken', function (accounts) {
     it('Acc9 (nobody) can\'t mint tokens', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc0 (owner) can\'t mint tokens until add himself to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[0]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc1 (owner) can\'t mint tokens until add himself to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[1]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
@@ -141,6 +141,49 @@ contract('LongevityToken', function (accounts) {
             assert.equal(result['logs'][0]['event'], 'Mint');
         });
     });
+    it('Check not finalized Cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.cap();
+        }).then(function (result) {
+            assert.equal(result, Math.pow(2, 256) - 1);
+        });
+    });
+    it('Check total Supply', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.totalSupply();
+        }).then(function (result) {
+            assert.equal(result, 49099);
+        });
+    });
+    it('Set cap (on presale finalize)', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.setCap();
+        }).then(function (result) {
+            assert.equal(result['logs'][0]['event'], 'SetCap');
+        });
+    });
+    it('Cap should be totalSupply x 2 after setCap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.cap();
+        }).then(function (result) {
+            assert.equal(result, 49099 * 2);
+        });
+    });
+    it('Total Supply shouldn\'t change after set cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.totalSupply();
+        }).then(function (result) {
+            assert.equal(result, 49099);
+        });
+    });
+    it('Unable to mint over finalized cap', function () {
+        return LongevityToken.deployed().then(function (instance) {
+            return instance.mint(accounts[0], 49100, {from: accounts[0]});
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
+    });
     it('Acc0 (owner, minter) can transfer tokens to another Acc9', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.transfer(accounts[9], 4000);
@@ -158,16 +201,18 @@ contract('LongevityToken', function (accounts) {
     it('Acc9 (holder) unable to transfer more than its balance', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.transfer(accounts[7], 1001, {from: accounts[9]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc9 (holder) unable to burn more than it has', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.burn(1001, {from: accounts[9]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc9 (holder) able to burn all its balance', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -215,9 +260,10 @@ contract('LongevityToken', function (accounts) {
     it('Acc3 (minter) can\'t remove Acc0 from minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.delMinter(accounts[0], {from: accounts[3]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc2 (owner, minter) removes Acc0 from minters', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -229,23 +275,26 @@ contract('LongevityToken', function (accounts) {
     it('Acc0 (owner) can\'t mint tokens to himself after was removed from minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000);
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Unprivileged holder can\'t finalize minting', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.finishMinting({from: accounts[9]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Minter can\'t finalize minting', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.finishMinting({from: accounts[3]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Owner can finalize minting', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -257,16 +306,18 @@ contract('LongevityToken', function (accounts) {
     it('Acc0 (owner + minter) unable to mint for himself after finalization', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 12861, {from: accounts[0]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc3 (minter) unable to mint for anybody after finalization', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[6], 51429, {from: accounts[3]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc8 (holder) burns part of its tokens again', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -285,16 +336,18 @@ contract('LongevityToken', function (accounts) {
     it('Acc3 (minter) can\'t remove Acc0 from owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.delOwner(accounts[0], {from: accounts[3]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc9 (holder) can\'t remove Acc0 from owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.delOwner(accounts[0], {from: accounts[9]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc2 (owner) removes Acc0 from owners', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -310,13 +363,6 @@ contract('LongevityToken', function (accounts) {
             assert.equal(result['logs'][0]['event'], 'OwnerRemoved');
         });
     });
-    it('Acc8 (holder) unable approve more than its balance', function () {
-        return LongevityToken.deployed().then(function (instance) {
-            return instance.approve(accounts[7], 567, {from: accounts[9]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
-    });
     it('Check Acc7 (spender) has no approval to transfer from Acc8 (holder)', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.allowance.call(accounts[8], accounts[7]);
@@ -327,9 +373,10 @@ contract('LongevityToken', function (accounts) {
     it('Acc7 (spender) is unable to transfer non-approved money', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.transferFrom(accounts[8], accounts[5], 567, {from: accounts[7]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc8 (holder) is able to approve to Acc7 its balance', function () {
         return LongevityToken.deployed().then(function (instance) {
@@ -356,9 +403,10 @@ contract('LongevityToken', function (accounts) {
     it('Acc7 (holder) is unable to transfer money more than approved', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.transferFrom(accounts[8], accounts[5], 67, {from: accounts[7]});
-        }).catch(function (error) {
-            assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
-        });
+        }).then(assert.fail)
+            .catch(function (error) {
+                assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
+            });
     });
     it('Acc7 (holder) is able to transfer remaining approved money', function () {
         return LongevityToken.deployed().then(function (instance) {
