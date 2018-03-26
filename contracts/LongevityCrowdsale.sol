@@ -255,4 +255,17 @@ contract LongevityCrowdsale {
         delete phases[index];
         DelPhase(index);
     }
+
+    // finalizeCrowdsale issues tokens for the Team.
+    // Team gets 30/70 of harvested funds then token gets capped (upper emission boundary locked) to totalSupply * 2
+    // The token split after finalization will be in % of total token cap:
+    // 1. Tokens issued and distributed during pre-ICO and ICO = 35%
+    // 2. Tokens issued for the team on ICO finalization = 30%
+    // 3. Tokens for future in-app emission = 35%
+    function finalizeCrowdsale(address _teamAccount) {
+        uint256 soldTokens = token.totalSupply();
+        uint256 teamTokens = soldTokens.div(70).mul(30);
+        token.mint(_teamAccount, teamTokens);
+        token.setCap();
+    }
 }
