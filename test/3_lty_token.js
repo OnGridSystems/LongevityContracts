@@ -11,28 +11,28 @@ contract('LongevityToken', function (accounts) {
     it('Acc0 (owner by constructor) can\'t mint tokens to himself until it added to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000);
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc0 (owner by constructor) can\'t mint tokens to non-owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[1], 500);
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc9 (nobody) can\'t mint tokens', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc9 (nobody) can\'t add owners', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.addOwner(accounts[1], {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
@@ -53,21 +53,21 @@ contract('LongevityToken', function (accounts) {
     it('Acc9 (nobody) can\'t mint tokens', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[9]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc0 (owner) can\'t mint tokens until add himself to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[0]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
     it('Acc1 (owner) can\'t mint tokens until add himself to minters', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.mint(accounts[0], 10000, {from: accounts[1]});
-        }).catch(function (error) {
+        }).then(assert.fail).catch(function (error) {
             assert.isAbove(error.message.search('VM Exception while processing transaction'), -1, 'revert must be returned')
         });
     });
@@ -145,14 +145,14 @@ contract('LongevityToken', function (accounts) {
         return LongevityToken.deployed().then(function (instance) {
             return instance.cap();
         }).then(function (result) {
-            assert.equal(result, Math.pow(2,256) - 1);
+            assert.equal(result, Math.pow(2, 256) - 1);
         });
     });
     it('Check total Supply', function () {
         return LongevityToken.deployed().then(function (instance) {
             return instance.totalSupply();
         }).then(function (result) {
-            assert.equal(result,49099);
+            assert.equal(result, 49099);
         });
     });
     it('Set cap (on presale finalize)', function () {
@@ -173,7 +173,7 @@ contract('LongevityToken', function (accounts) {
         return LongevityToken.deployed().then(function (instance) {
             return instance.totalSupply();
         }).then(function (result) {
-            assert.equal(result,49099);
+            assert.equal(result, 49099);
         });
     });
     it('Unable to mint over finalized cap', function () {

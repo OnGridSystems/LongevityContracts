@@ -163,7 +163,7 @@ contract LongevityToken is StandardToken {
      * Cap will be set to (sold tokens + team tokens) * 2
      */
     function setCap() onlyOwner public {
-        assert(cap == 2**256 - 1); // if was not set yet
+        require(cap == 2**256 - 1);
         cap = totalSupply.mul(2);
         SetCap(totalSupply, cap);
     }
