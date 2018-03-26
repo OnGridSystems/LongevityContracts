@@ -17,9 +17,6 @@ contract LongevityCrowdsale {
     // The token being sold
     LongevityToken public token;
 
-    // External wallet where funds get forwarded
-    address public wallet;
-
     // Crowdsale administrators
     mapping (address => bool) public owners;
 
@@ -47,7 +44,13 @@ contract LongevityCrowdsale {
 
 
     // Amount of raised Ethers (in wei).
+    // And rised Dollars in cents
     uint256 public weiRaised;
+    uint256 public USDcRised;
+
+    // Wallets management
+    address[] public wallets;
+    mapping (address => bool) inList;
 
     /**
      * event for token purchase logging
@@ -63,7 +66,8 @@ contract LongevityCrowdsale {
     event RateUpdate(uint256 rate);
 
     // event for wallet update
-    event WalletSet(address indexed wallet);
+    event WalletAdded(address indexed wallet);
+    event WalletRemoved(address indexed wallet);
 
     // owners management events
     event OwnerAdded(address indexed newOwner);
@@ -77,23 +81,14 @@ contract LongevityCrowdsale {
         require(_tokenAddress != address(0));
         token = LongevityToken(_tokenAddress);
         rateUSDcETH = _initialRate;
-        wallet = msg.sender;
         owners[msg.sender] = true;
         bots[msg.sender] = true;
         phases[0].bonusPercent = 40;
         phases[0].startTime = 1520453700;
         phases[0].endTime = 1520460000;
-    }
 
-    /**
-     * @dev Update collecting wallet address
-     * @param _address The address to send collected funds
-     */
-    function setWallet(address _address) onlyOwner public {
-        wallet = _address;
-        WalletSet(_address);
+        addWallet(msg.sender);
     }
-
 
     // fallback function can be used to buy tokens
     function () external payable {
@@ -116,6 +111,8 @@ contract LongevityCrowdsale {
 
         // update state
         weiRaised = weiRaised.add(weiAmount);
+        // update USDc
+        USDcRised = calculateUSDcValue(weiRaised);
 
         token.mint(beneficiary, tokens);
         TokenPurchase(msg.sender, beneficiary, weiAmount, currentBonusPercent, tokens);
@@ -215,11 +212,38 @@ contract LongevityCrowdsale {
     }
 
     // send ether to the fund collection wallet
-    // override to create custom fund forwarding mechanisms
     function forwardFunds() internal {
-        wallet.transfer(msg.value);
+        uint256 value = msg.value / wallets.length;
+        uint256 rest = msg.value - (value * wallets.length);
+        for (uint i = 0; i < wallets.length - 1; i++) {
+            wallets[i].transfer(value);
+        }
+        wallets[wallets.length - 1].transfer(value + rest);
     }
 
+    // Add wallet address to wallets list
+    function addWallet(address _address) onlyOwner public {
+        require(!inList[_address]);
+        wallets.push(_address);
+        inList[_address] = true;
+        WalletAdded(_address);
+    }
 
+    // Delete wallet from wallets list
+    function delWallet(uint index) onlyOwner public {
+        require(index < wallets.length);
+        address remove = wallets[index];
+        inList[remove] = false;
+        for (uint i = index; i < wallets.length-1; i++) {
+            wallets[i] = wallets[i+1];
+        }
+        wallets.length--;
+        WalletRemoved(remove);
+    }
+
+    // Return wallets array size
+    function getWalletsCount() public view returns (uint256) {
+        return wallets.length;
+    }
 
 }
