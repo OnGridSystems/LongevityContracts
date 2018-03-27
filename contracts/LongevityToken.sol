@@ -19,6 +19,7 @@ contract LongevityToken is StandardToken {
         uint256 mintSpeed; // token fractions per second
     }
     Tap public mintTap;
+    bool public capFinalized = false;
 
     event Mint(address indexed to, uint256 amount);
     event MintFinished();
@@ -163,8 +164,10 @@ contract LongevityToken is StandardToken {
      * Cap will be set to (sold tokens + team tokens) * 2
      */
     function setCap() onlyOwner public {
+        require(!capFinalized);
         require(cap == 2**256 - 1);
         cap = totalSupply.mul(2);
+        capFinalized = true;
         SetCap(totalSupply, cap);
     }
 }

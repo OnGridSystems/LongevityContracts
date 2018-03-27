@@ -45,6 +45,7 @@ contract LongevityCrowdsale {
     // Minimum Deposit in USD cents
     uint256 public constant minContributionUSDc = 1000;
 
+    bool public finalized = false;
 
     // Amount of raised Ethers (in wei).
     // And raised Dollars in cents
@@ -328,9 +329,11 @@ contract LongevityCrowdsale {
     // 2. Tokens issued for the team on ICO finalization = 30%
     // 3. Tokens for future in-app emission = 35%
     function finalizeCrowdsale(address _teamAccount) onlyOwner public {
+        require(!finalized);
         uint256 soldTokens = token.totalSupply();
         uint256 teamTokens = soldTokens.div(70).mul(30);
         token.mint(_teamAccount, teamTokens);
         token.setCap();
+        finalized = true;
     }
 }
