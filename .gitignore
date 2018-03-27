@@ -3,3 +3,14 @@ package-lock.json
 node_modules
 .idea
 env
+.Python
+.cache/v/cache
+.cache
+LICENSE
+bin
+bitcoin
+include
+lib
+pip-selfcheck.json
+share
+test/__pycache__
