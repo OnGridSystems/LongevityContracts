@@ -29,8 +29,8 @@ contract LongevityCrowdsale {
     // Phases list, see schedule in constructor
     mapping (uint => Phase) phases;
 
-    // The total number of phases (0...5)
-    uint public totalPhases = 6;
+    // The total number of phases
+    uint public totalPhases = 0;
 
     // Description for each phase
     struct Phase {
@@ -44,9 +44,9 @@ contract LongevityCrowdsale {
 
 
     // Amount of raised Ethers (in wei).
-    // And rised Dollars in cents
+    // And raised Dollars in cents
     uint256 public weiRaised;
-    uint256 public USDcRised;
+    uint256 public USDcRaised;
 
     // Wallets management
     address[] public wallets;
@@ -77,6 +77,11 @@ contract LongevityCrowdsale {
     event BotAdded(address indexed newBot);
     event BotRemoved(address indexed removedBot);
 
+    // Phase edit events
+    event TotalPhasesChanged(uint value);
+    event SetPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent);
+    event DelPhase(uint index);
+
     function LongevityCrowdsale(address _tokenAddress, uint256 _initialRate) public {
         require(_tokenAddress != address(0));
         token = LongevityToken(_tokenAddress);
@@ -99,6 +104,7 @@ contract LongevityCrowdsale {
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
         require(msg.value != 0);
+        require(isInPhase(now));
 
         uint256 currentBonusPercent = getBonusPercent(now);
 
@@ -108,11 +114,9 @@ contract LongevityCrowdsale {
 
         // calculate token amount to be created
         uint256 tokens = calculateTokenAmount(weiAmount, currentBonusPercent);
-
-        // update state
+        
         weiRaised = weiRaised.add(weiAmount);
-        // update USDc
-        USDcRised = calculateUSDcValue(weiRaised);
+        USDcRaised = USDcRaised.add(calculateUSDcValue(weiRaised));
 
         token.mint(beneficiary, tokens);
         TokenPurchase(msg.sender, beneficiary, weiAmount, currentBonusPercent, tokens);
@@ -123,12 +127,21 @@ contract LongevityCrowdsale {
     // If phase exists return corresponding bonus for the given date
     // else return 0 (percent)
     function getBonusPercent(uint256 datetime) public view returns (uint256) {
+        require(isInPhase(datetime));
         for (uint i = 0; i < totalPhases; i++) {
             if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
                 return phases[i].bonusPercent;
             }
         }
-        return 0;
+    }
+
+    // If phase exists for the given date return true
+    function isInPhase(uint256 datetime) public view returns (bool) {
+        for (uint i = 0; i < totalPhases; i++) {
+            if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
+                return true;
+            }
+        }
     }
 
     // set rate
@@ -229,6 +242,26 @@ contract LongevityCrowdsale {
         WalletAdded(_address);
     }
 
+    //Change number of phases
+    function setTotalPhases(uint value) onlyOwner public {
+        totalPhases = value;
+        TotalPhasesChanged(value);
+    }
+
+    // Set phase: index and values
+    function setPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent) onlyOwner public {
+        require(index <= totalPhases);
+        phases[index] = Phase(_startTime, _endTime, _bonusPercent);
+        SetPhase(index, _startTime, _endTime, _bonusPercent);
+    }
+
+    // Delete phase
+    function delPhase(uint index) onlyOwner public {
+        require(index <= totalPhases);
+        delete phases[index];
+        DelPhase(index);
+    }
+
     // Delete wallet from wallets list
     function delWallet(uint index) onlyOwner public {
         require(index < wallets.length);
@@ -246,4 +279,16 @@ contract LongevityCrowdsale {
         return wallets.length;
     }
 
+    // finalizeCrowdsale issues tokens for the Team.
+    // Team gets 30/70 of harvested funds then token gets capped (upper emission boundary locked) to totalSupply * 2
+    // The token split after finalization will be in % of total token cap:
+    // 1. Tokens issued and distributed during pre-ICO and ICO = 35%
+    // 2. Tokens issued for the team on ICO finalization = 30%
+    // 3. Tokens for future in-app emission = 35%
+    function finalizeCrowdsale(address _teamAccount) onlyOwner public {
+        uint256 soldTokens = token.totalSupply();
+        uint256 teamTokens = soldTokens.div(70).mul(30);
+        token.mint(_teamAccount, teamTokens);
+        token.setCap();
+    }
 }
