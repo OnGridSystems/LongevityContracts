@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+
+before_install:
+  - sudo add-apt-repository ppa:ethereum/ethereum -y
+  - sudo apt-get update -q
+  - sudo apt-get install solc -y
+
+install:
+  - pip install -r requirements.txt
+
+script:
+  - py.test test
