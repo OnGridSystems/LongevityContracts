@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/OnGridSystems/LongevityContracts.svg?branch=master)](https://travis-ci.org/OnGridSystems/LongevityContracts)
-# Longevity contracts
+# Longevity Token and Crowdsale (ICO) contracts
 Longevity Ethereum contracts stack consists of
 * Longevity token (LTY) - the coin supposed to be the main digital asset in Eterly application;
 * Crowdsale contract - preallocates LTYs to investors during pre-ICO and ICO token sale then finalizes token 
@@ -48,7 +48,7 @@ setTotalPhases(uint value)
 setPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _discountPercent)
 delPhase(uint index)
 ```
-### Price oracle
+## Price oracle
 
 In-contract ETH price is kept up to date by external entity Oracle polling the exchanges. Oracle runs as an external off-chain script
 under the low-privileged 'Bot' account. A list of such oracle bots can be changed by the owner with the methods:
@@ -57,32 +57,37 @@ addBot(address _address)
 delBot(address _address)
 ```
 
-### Wallets
+## Wallets
 
 All the funds received from the investors are evenly split and forwarded to securely stored wallets (Externally Owned Accounts) 
 to avoid any on-chain risks. Wallets can be added or removed at any point of time by the owners. 
 ```
-TBD
+Crowdsale.getWalletsCount()
+Crowdsale.wallets(0)
+Crowdsale.addWallet(walletAddress)
+Crowdsale.wallets(1)
+Crowdsale.delWallet(0)
 ```
 
-# Get the source code
+## Getting started
+### Get the source code
 Clone the contracts repository with submodules (we use zeppelin-solidity libraries)
 ```
 git clone --recurse-submodules git@github.com:OnGridSystems/LongevityContracts.git
 ```
 
-# Test it
+### Test it
 To be sure in code quality and compatibility we use BOTH framoworks for testing our code:
 * truffle - popular JS-based DApps framework. Uses solc-js compiler and mocha;
 * populus - python-based ethereum framework. Uses solc compiler and pytest.
 
-## Run truffle tests
+#### Run truffle tests
 - Install [truffle framework](http://truffleframework.com) on your host. It will install solc-js compiler automatically.
 - Run ```truffle develop``` in one console, its command prompt > will appear. Leave it open.
 - Start the new console and type ```truffle deploy --reset```.
 - After migration run ```truffle test --reset``` and see the progress.
 
-## Run populus tests
+#### Run populus tests
 - Install latest python3 (in this example we use python3.6).
 - Create python virtual environment, activate and install requirements
 ```
@@ -98,7 +103,7 @@ pip install -r requirements.txt
 ```
 py.test test/
 ```
-# Deploy on the net
+### Deploy on the net
 
 - Flatten your solidity code
 The simplest way to move your code to the IDE and other tools is to make it flat (opposed to hierarchically organized files)
@@ -152,11 +157,11 @@ Crowdsale.setPhase(4, 1530403200, 1533081599, 0)
 ```
 Token.addMinter(Crowdsale.address)
 ```
-# Post-Deploy steps
+### Post-Deploy steps
 - Good practice is to verify Source Code on the etherscan. Do it for both Crowdsale and Token.
 - Publish your Crowdsale contract for investors. Make a notice on dates, discounts and minimal contributon.
 
-# Crowdsale housekeeping
+### Crowdsale housekeeping
 - keep contract ETH price up do date (the external Oracle script does it perfectly!). Only account in bots list allowed to do this.
 ```
 Crowdsale.setRate(12345) // ETH price in USD cents
@@ -166,7 +171,7 @@ Crowdsale.setRate(12345) // ETH price in USD cents
 // receive 100 USD and issue 14000.00 tokens
 Crowdsale.offChainPurchase(beneficiaryAccount, 1400000, 10000) 
 ```
-# Finalize crowdsale
+### Crowdsale finalization
 After the last phase ends 30/70 of issued tokens minted for the team DAO contract. 
 Then token gets finally capped to totalSupply * 2.
 The entire procedure is triggered by the owner with this call:
@@ -178,7 +183,9 @@ Then disconnect Crowdsale from the token (remove minting privileges given before
 Token.delMinter(Crowdsale.address)
 ```
 
-# Post-finalization state
+### Post-finalization state
 * the token is still mintable. To continue minting you should add new minter for the process and set appropriate minting speed limit - tap).
 * minting is limited by the cap. After finalization cap is unchanged.
 
+## Authors
+* OnGrid Systems: [Site](https://ongrid.pro), [GitHub](https://github.com/OnGridSystems/)
