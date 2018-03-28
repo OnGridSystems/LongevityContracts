@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/OnGridSystems/LongevityContracts.svg?branch=master)](https://travis-ci.org/OnGridSystems/LongevityContracts)
 # Longevity contracts
 Longevity Ethereum contracts stack consists of
 * Longevity token (LTY) - the coin supposed to be the main digital asset in Eterly application;
@@ -91,13 +92,7 @@ pip install -r requirements.txt
 ```
 - There is annoying solc option 'allow_paths' denying access to project sources. Patch solc wrapper to mute it.
 ```
-read -d "" PATCH <<"EOF"
-49c49
-<                  allow_paths=None,
----
->                  allow_paths="/",
-EOF
-echo "$PATCH" | patch lib/python3.6/site-packages/solc/wrapper.py
+./solc_wrapper_patch.sh
 ```
 - run tests and enjoy
 ```

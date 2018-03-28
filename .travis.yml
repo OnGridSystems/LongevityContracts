@@ -1,15 +1,19 @@
 language: python
 python:
-  - "3.5"
   - "3.6"
 
 before_install:
   - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update -q
   - sudo apt-get install solc -y
+  - npm install -g truffle
 
 install:
   - pip install -r requirements.txt
+  - ./solc_wrapper_patch.sh
 
 script:
+  - screen -dm truffle develop
   - py.test test
+  - truffle migrate --reset
+  - truffle test --reset
