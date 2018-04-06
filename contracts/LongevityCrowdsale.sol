@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
-import './math/SafeMath.sol';
-import './LongevityToken.sol';
+import "./math/SafeMath.sol";
+import "./LongevityToken.sol";
 import "./PriceOracleInterface.sol";
 
 /**
@@ -27,21 +27,15 @@ contract LongevityCrowdsale {
     // ETH/USD price source
     PriceOracleIface public oracle;
 
-    // Phases list, see schedule in constructor
-    mapping (uint => Phase) phases;
-
-    // The total number of phases
-    uint public totalPhases = 0;
-
-    // Description for each phase
     struct Phase {
-        uint256 startTime;
-        uint256 endTime;
-        uint256 bonusPercent;
+        uint256 startDate;
+        uint256 endDate;
+        uint256 discountPercent;
     }
+    Phase[] public phases;
 
     // Minimum Deposit in USD cents
-    uint256 public constant minContributionUSDc = 1000;
+    uint256 public minContributionUSDc = 1000;
 
     bool public finalized = false;
 
@@ -59,10 +53,10 @@ contract LongevityCrowdsale {
      * @param purchaser who paid for the tokens
      * @param beneficiary who got the tokens
      * @param value weis paid for purchase
-     * @param bonusPercent free tokens percantage for the phase
+     * @param discountPercent free tokens percantage for the phase
      * @param amount amount of tokens purchased
      */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 bonusPercent, uint256 amount);
+    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 discountPercent, uint256 amount);
     event OffChainTokenPurchase(address indexed beneficiary, uint256 tokensSold, uint256 USDcAmount);
 
     // event for wallet update
@@ -77,10 +71,9 @@ contract LongevityCrowdsale {
     event CashierAdded(address indexed newBot);
     event CashierRemoved(address indexed removedBot);
 
-    // Phase edit events
-    event TotalPhasesChanged(uint value);
-    event SetPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent);
-    event DelPhase(uint index);
+    // phase editor events
+    event PhaseAdded(address indexed sender, uint256 index, uint256 startDate, uint256 endDate, uint256 discountPercent);
+    event PhaseDeleted(address indexed sender, uint256 index);
 
     // Oracle change event
     event OracleChanged(address newOracle);
@@ -103,23 +96,16 @@ contract LongevityCrowdsale {
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
         require(msg.value != 0);
-        require(isInPhase(now));
-
-        uint256 currentBonusPercent = getBonusPercent(now);
-
         uint256 weiAmount = msg.value;
-
+        uint256 currentDiscountPercent = getCurrentDiscountPercent();
         require(calculateUSDcValue(weiAmount) >= minContributionUSDc);
-
         // calculate token amount to be created
-        uint256 tokens = calculateTokenAmount(weiAmount, currentBonusPercent);
+        uint256 tokens = calculateTokenAmount(weiAmount, currentDiscountPercent);
         
         weiRaised = weiRaised.add(weiAmount);
         USDcRaised = USDcRaised.add(calculateUSDcValue(weiRaised));
-
         token.mint(beneficiary, tokens);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, currentBonusPercent, tokens);
-
+        TokenPurchase(msg.sender, beneficiary, weiAmount, currentDiscountPercent, tokens);
         forwardFunds();
     }
 
@@ -129,26 +115,6 @@ contract LongevityCrowdsale {
         USDcRaised = USDcRaised.add(USDcAmount);
         token.mint(beneficiary, tokensSold);
         OffChainTokenPurchase(beneficiary, tokensSold, USDcAmount);
-    }
-
-    // If phase exists return corresponding bonus for the given date
-    // else return 0 (percent)
-    function getBonusPercent(uint256 datetime) public view returns (uint256) {
-        require(isInPhase(datetime));
-        for (uint i = 0; i < totalPhases; i++) {
-            if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
-                return phases[i].bonusPercent;
-            }
-        }
-    }
-
-    // If phase exists for the given date return true
-    function isInPhase(uint256 datetime) public view returns (bool) {
-        for (uint i = 0; i < totalPhases; i++) {
-            if (datetime >= phases[i].startTime && datetime <= phases[i].endTime) {
-                return true;
-            }
-        }
     }
 
     /**
@@ -223,18 +189,20 @@ contract LongevityCrowdsale {
     }
 
     // calculate deposit value in USD Cents
-    function calculateUSDcValue(uint256 _weiAmount) public view returns (uint256) {
+    function calculateUSDcValue(uint256 weiAmount) public view returns (uint256) {
         uint256 priceUSDcETH = getPriceUSDcETH();
-        uint256 valueUSDc = _weiAmount.mul(priceUSDcETH).div(1 ether);
+        uint256 valueUSDc = weiAmount.mul(priceUSDcETH).div(1 ether);
         return valueUSDc;
     }
 
     // calculates how much tokens will beneficiary get
     // for given amount of wei
-    function calculateTokenAmount(uint256 _weiDeposit, uint256 _bonusTokensPercent) public view returns (uint256) {
-        uint256 mainTokens = calculateUSDcValue(_weiDeposit);
-        uint256 bonusTokens = mainTokens.mul(_bonusTokensPercent).div(100);
-        return mainTokens.add(bonusTokens);
+    function calculateTokenAmount(uint256 weiReceived, uint256 discountPercent) public view returns (uint256) {
+        uint256 USDcReceived = calculateUSDcValue(weiReceived);
+        uint256 tokensPerUSDcBase = 100; // tokens per USD cent without discount
+        uint256 pricePercent = SafeMath.sub(100,discountPercent);
+        uint256 tokensPerUSDcDiscounted = tokensPerUSDcBase.mul(100).div(pricePercent);
+        return USDcReceived.mul(tokensPerUSDcDiscounted);
     }
 
     // send ether to the fund collection wallet
@@ -255,25 +223,81 @@ contract LongevityCrowdsale {
         WalletAdded(_address);
     }
 
-    //Change number of phases
-    function setTotalPhases(uint value) onlyOwner public {
-        totalPhases = value;
-        TotalPhasesChanged(value);
+    /**
+     * @dev Checks if dates overlap with existing phases of the contract.
+     * @param _startDate  Start date of the phase
+     * @param _endDate    End date of the phase
+     * @return true if provided dates valid
+     */
+    function validatePhaseDates(uint256 _startDate, uint256 _endDate) view public returns (bool) {
+        if (_endDate <= _startDate) {
+            return false;
+        }
+        for (uint i = 0; i < phases.length; i++) {
+            if (_startDate >= phases[i].startDate && _startDate <= phases[i].endDate) {
+                return false;
+            }
+            if (_endDate >= phases[i].startDate && _endDate <= phases[i].endDate) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    // Set phase: index and values
-    function setPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent) onlyOwner public {
-        require(index <= totalPhases);
-        phases[index] = Phase(_startTime, _endTime, _bonusPercent);
-        SetPhase(index, _startTime, _endTime, _bonusPercent);
+    /**
+     * @dev Adds a new phase
+     * @param _startDate  Start date of the phase
+     * @param _endDate    End date of the phase
+     * @param _discountPercent  Price USD cents per token
+     */
+    function addPhase(uint256 _startDate, uint256 _endDate, uint256 _discountPercent) public onlyOwner {
+        require(validatePhaseDates(_startDate, _endDate));
+        phases.push(Phase(_startDate, _endDate, _discountPercent));
+        uint256 index = phases.length - 1;
+        PhaseAdded(msg.sender, index, _startDate, _endDate, _discountPercent);
     }
 
-    // Delete phase
-    function delPhase(uint index) onlyOwner public {
-        require(index <= totalPhases);
-        delete phases[index];
-        DelPhase(index);
+    /**
+     * @dev Delete phase by its index
+     * @param index Index of the phase
+     */
+    function delPhase(uint256 index) public onlyOwner {
+        if (index >= phases.length) return;
+
+        for (uint i = index; i<phases.length-1; i++){
+            phases[i] = phases[i+1];
+        }
+        phases.length--;
+        PhaseDeleted(msg.sender, index);
     }
+
+    /**
+     * @dev Return current phase index
+     * @return current phase id
+     */
+    function getPhaseIndex(uint256 unixtime) view public returns (uint256) {
+        for (uint i = 0; i < phases.length; i++) {
+            if (phases[i].startDate <= unixtime && unixtime <= phases[i].endDate) {
+                return i;
+            }
+        }
+        revert();
+    }
+
+    function getCurrentPhaseIndex() view public returns (uint256) {
+        return getPhaseIndex(now);
+    }
+
+    //tested
+    function getDiscountPercent(uint256 unixtime) view public returns (uint256) {
+        return phases[getPhaseIndex(unixtime)].discountPercent;
+    }
+
+    function getCurrentDiscountPercent() view public returns (uint256) {
+        return phases[getCurrentPhaseIndex()].discountPercent;
+    }
+
+
 
     // Delete wallet from wallets list
     function delWallet(uint index) onlyOwner public {
