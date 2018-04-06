@@ -76,33 +76,12 @@ Clone the contracts repository with submodules (we use zeppelin-solidity librari
 git clone --recurse-submodules git@github.com:OnGridSystems/LongevityContracts.git
 ```
 
-### Test it
-To be sure in code quality and compatibility we use BOTH framoworks for testing our code:
-* truffle - popular JS-based DApps framework. Uses solc-js compiler and mocha;
-* populus - python-based ethereum framework. Uses solc compiler and pytest.
-
-#### Run truffle tests
+### Run tests
 - Install [truffle framework](http://truffleframework.com) on your host. It will install solc-js compiler automatically.
 - Run ```truffle develop``` in one console, its command prompt > will appear. Leave it open.
 - Start the new console and type ```truffle deploy --reset```.
 - After migration run ```truffle test --reset``` and see the progress.
 
-#### Run populus tests
-- Install latest python3 (in this example we use python3.6).
-- Create python virtual environment, activate and install requirements
-```
-virtualenv --python=python3.6 .
-source bin/activate
-pip install -r requirements.txt
-```
-- There is annoying solc option 'allow_paths' denying access to project sources. Patch solc wrapper to mute it.
-```
-./solc_wrapper_patch.sh
-```
-- run tests and enjoy
-```
-py.test test/
-```
 ### Deploy on the net
 
 - Flatten your solidity code
@@ -122,9 +101,9 @@ deploy(Token)
 ```
 Token.setMintTap(10000) //100 tokens/s
 ```
-- Deploy **Crowdsale** contract, use the **Token** address and current ETH price in USD cents as arguments
+- Deploy **Crowdsale** contract, use the **Token** address and PriceOracle address as arguments
 ```
-deploy(Crowdsale, Token.address, 12345)
+deploy(Crowdsale, Token.address, Oracle.address)
 ```
 - By default Crowdsale contract has a single wallet receiving collected ethers - the address who deployed the contract.
 You can add/delete receiving wallets manually.
@@ -134,10 +113,6 @@ Crowdsale.wallets(0)
 Crowdsale.addWallet(walletAddress)
 Crowdsale.wallets(1)
 Crowdsale.delWallet(0)
-```
-- Add Oracle bot account to do regular price updates
-```
-Crowdsale.addBot(botAddress)
 ```
 - Add Cashier account for non-Ethereum payments
 ```

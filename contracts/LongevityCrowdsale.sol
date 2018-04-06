@@ -2,13 +2,14 @@ pragma solidity ^0.4.18;
 
 import './math/SafeMath.sol';
 import './LongevityToken.sol';
+import "./PriceOracleInterface.sol";
 
 /**
  * @title LongevityCrowdsale
  * @dev LongevityCrowdsale is a contract for managing a token crowdsale for Longevity project.
  * Crowdsale have phases with start and end timestamps, where investors can make
  * token purchases and the crowdsale will assign them tokens based
- * on a token per ETH rate and bonuses. Collected funds are forwarded to a wallet
+ * on a token per ETH rate and discounts. Collected funds are forwarded to the wallets
  * as they arrive.
  */
 contract LongevityCrowdsale {
@@ -20,14 +21,11 @@ contract LongevityCrowdsale {
     // Crowdsale administrators
     mapping (address => bool) public owners;
 
-    // External bots updating rates
-    mapping (address => bool) public bots;
-
     // Cashiers responsible for manual token issuance
     mapping (address => bool) public cashiers;
 
-    // USD cents per ETH exchange rate
-    uint256 public rateUSDcETH;
+    // ETH/USD price source
+    PriceOracleIface public oracle;
 
     // Phases list, see schedule in constructor
     mapping (uint => Phase) phases;
@@ -67,9 +65,6 @@ contract LongevityCrowdsale {
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 bonusPercent, uint256 amount);
     event OffChainTokenPurchase(address indexed beneficiary, uint256 tokensSold, uint256 USDcAmount);
 
-    // event for rate update logging
-    event RateUpdate(uint256 rate);
-
     // event for wallet update
     event WalletAdded(address indexed wallet);
     event WalletRemoved(address indexed wallet);
@@ -77,10 +72,6 @@ contract LongevityCrowdsale {
     // owners management events
     event OwnerAdded(address indexed newOwner);
     event OwnerRemoved(address indexed removedOwner);
-
-    // bot management events
-    event BotAdded(address indexed newBot);
-    event BotRemoved(address indexed removedBot);
 
     // cashier management events
     event CashierAdded(address indexed newBot);
@@ -91,16 +82,15 @@ contract LongevityCrowdsale {
     event SetPhase(uint index, uint256 _startTime, uint256 _endTime, uint256 _bonusPercent);
     event DelPhase(uint index);
 
-    function LongevityCrowdsale(address _tokenAddress, uint256 _initialRate) public {
-        require(_tokenAddress != address(0));
-        token = LongevityToken(_tokenAddress);
-        rateUSDcETH = _initialRate;
-        owners[msg.sender] = true;
-        bots[msg.sender] = true;
-        phases[0].bonusPercent = 40;
-        phases[0].startTime = 1520453700;
-        phases[0].endTime = 1520460000;
+    // Oracle change event
+    event OracleChanged(address newOracle);
 
+    function LongevityCrowdsale(LongevityToken _token, PriceOracleIface _oracle) public {
+        require(_token != address(0));
+        require(_oracle != address(0));
+        token = _token;
+        oracle = _oracle;
+        owners[msg.sender] = true;
         addWallet(msg.sender);
     }
 
@@ -161,13 +151,23 @@ contract LongevityCrowdsale {
         }
     }
 
-    // set rate
-    function setRate(uint256 _rateUSDcETH) public onlyBot {
-        // don't allow to change rate more than 10%
-        assert(_rateUSDcETH < rateUSDcETH.mul(110).div(100));
-        assert(_rateUSDcETH > rateUSDcETH.mul(90).div(100));
-        rateUSDcETH = _rateUSDcETH;
-        RateUpdate(rateUSDcETH);
+    /**
+     * @dev Proxies current ETH balance request to the Oracle contract
+     * @return ETH price in USD cents
+     */
+    function getPriceUSDcETH() public view returns(uint256) {
+        require(oracle.priceUSDcETH() > 0);
+        return oracle.priceUSDcETH();
+    }
+
+    /**
+     * @dev Allows to change Oracle address (source of ETH price)
+     * @param _oracle ETH price oracle where we get actual exchange rate
+     */
+    function setOracle(PriceOracleIface _oracle) public onlyOwner {
+        require(oracle.priceUSDcETH() > 0);
+        oracle = _oracle;
+        OracleChanged(oracle);
     }
 
     /**
@@ -193,32 +193,6 @@ contract LongevityCrowdsale {
      */
     modifier onlyOwner() {
         require(owners[msg.sender]);
-        _;
-    }
-
-    /**
-     * @dev Adds rate updating bot
-     * @param _address The address of the rate bot
-     */
-    function addBot(address _address) onlyOwner public {
-        bots[_address] = true;
-        BotAdded(_address);
-    }
-
-    /**
-     * @dev Removes rate updating bot address
-     * @param _address The address of the rate bot
-     */
-    function delBot(address _address) onlyOwner public {
-        bots[_address] = false;
-        BotRemoved(_address);
-    }
-
-    /**
-     * @dev Throws if called by any account other than the bot.
-     */
-    modifier onlyBot() {
-        require(bots[msg.sender]);
         _;
     }
 
@@ -249,14 +223,10 @@ contract LongevityCrowdsale {
     }
 
     // calculate deposit value in USD Cents
-    function calculateUSDcValue(uint256 _weiDeposit) public view returns (uint256) {
-
-        // wei per USD cent
-        uint256 weiPerUSDc = 1 ether/rateUSDcETH;
-
-        // Deposited value converted to USD cents
-        uint256 depositValueInUSDc = _weiDeposit.div(weiPerUSDc);
-        return depositValueInUSDc;
+    function calculateUSDcValue(uint256 _weiAmount) public view returns (uint256) {
+        uint256 priceUSDcETH = getPriceUSDcETH();
+        uint256 valueUSDc = _weiAmount.mul(priceUSDcETH).div(1 ether);
+        return valueUSDc;
     }
 
     // calculates how much tokens will beneficiary get
