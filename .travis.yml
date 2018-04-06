@@ -1,19 +1,15 @@
-language: python
-python:
-  - "3.6"
-
-before_install:
-  - sudo add-apt-repository ppa:ethereum/ethereum -y
-  - sudo apt-get update -q
-  - sudo apt-get install solc -y
-  - npm install -g truffle
+language: node_js
+node_js:
+  - "8"
 
 install:
-  - pip install -r requirements.txt
-  - ./solc_wrapper_patch.sh
+  - sudo apt-get update -q
+  - sudo apt-get install screen -y
+  - npm install -g truffle dotenv
+  - npm install
 
 script:
-  - screen -dm truffle develop
-  - py.test test
+  - screen -dm bash -c 'truffle develop'
+  - sleep 5
   - truffle migrate --reset
   - truffle test --reset
