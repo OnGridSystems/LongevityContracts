@@ -199,10 +199,9 @@ contract LongevityCrowdsale {
     // for given amount of wei
     function calculateTokenAmount(uint256 weiReceived, uint256 discountPercent) public view returns (uint256) {
         uint256 USDcReceived = calculateUSDcValue(weiReceived);
-        uint256 tokensPerUSDcBase = 100; // tokens per USD cent without discount
+        uint256 tokensPerUSDc = 100; // tokens per USD cent without discount
         uint256 pricePercent = SafeMath.sub(100,discountPercent);
-        uint256 tokensPerUSDcDiscounted = tokensPerUSDcBase.mul(100).div(pricePercent);
-        return USDcReceived.mul(tokensPerUSDcDiscounted);
+        return USDcReceived.mul(tokensPerUSDc).mul(100).div(pricePercent);
     }
 
     // send ether to the fund collection wallet
