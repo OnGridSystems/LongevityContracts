@@ -9,7 +9,4 @@ install:
   - npm install
 
 script:
-  - screen -dm bash -c 'truffle develop'
-  - sleep 5
-  - truffle migrate --reset
-  - truffle test --reset
+  - ./scripts/test.sh

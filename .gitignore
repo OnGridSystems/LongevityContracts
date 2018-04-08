@@ -14,3 +14,5 @@ lib
 pip-selfcheck.json
 share
 test/__pycache__
+coverage.json
+coverage

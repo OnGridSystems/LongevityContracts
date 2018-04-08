@@ -159,6 +159,7 @@ contract LongevityToken is StandardToken {
         mintTap.mintSpeed = _mintSpeed;
         MintTapSet(mintTap.startTime, mintTap.mintSpeed);
     }
+
     /**
      * @dev sets token Cap (maximum possible totalSupply) on Crowdsale finalization
      * Cap will be set to (sold tokens + team tokens) * 2
