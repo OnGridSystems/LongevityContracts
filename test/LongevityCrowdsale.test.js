@@ -216,8 +216,7 @@ contract('LongevityCrowdsale', function (accounts) {
           sinkWallet1Increase.should.be.bignumber.equal(sinkWallet2Increase);
           sinkWallet1Increase.plus(sinkWallet2Increase).plus(sinkWallet3Increase).should.be.bignumber.equal(ether(1));
         });
-      });
-      describe('phase1 (current) deleted', function () {
+        describe('phase1 (current) deleted', function () {
         beforeEach(async function () {
           await this.cs.delPhase(1);
         });
@@ -271,6 +270,7 @@ contract('LongevityCrowdsale', function (accounts) {
             sinkWallet1Increase.plus(sinkWallet2Increase).plus(sinkWallet3Increase).should.be.bignumber.equal(ether(1));
           });
         });
+      });
       });
     });
 
