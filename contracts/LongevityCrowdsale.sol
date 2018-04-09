@@ -49,7 +49,6 @@ contract LongevityCrowdsale {
 
     // Wallets array
     address[] public wallets;
-    mapping(address => bool) private inList;
 
     /**
      * event for token purchase logging
@@ -212,14 +211,6 @@ contract LongevityCrowdsale {
         return USDcReceived.mul(tokensPerUSDc).mul(100).div(pricePercent);
     }
 
-    // Add wallet address to wallets list
-    function addWallet(address _address) public onlyOwner {
-        require(!inList[_address]);
-        wallets.push(_address);
-        inList[_address] = true;
-        emit WalletAdded(_address);
-    }
-
     /**
      * @dev Checks if dates overlap with existing phases of the contract.
      * @param _startDate  Start date of the phase
@@ -259,9 +250,8 @@ contract LongevityCrowdsale {
      * @param index Index of the phase
      */
     function delPhase(uint256 index) public onlyOwner {
-        if (index >= phases.length) return;
-
-        for (uint i = index; i < phases.length - 1; i++) {
+        require (index < phases.length);
+        for (uint256 i = index; i < phases.length - 1; i++) {
             phases[i] = phases[i + 1];
         }
         phases.length--;
@@ -294,16 +284,25 @@ contract LongevityCrowdsale {
         return phases[getCurrentPhaseIndex()].discountPercent;
     }
 
+    // Add wallet address to wallets list
+    function addWallet(address _address) public onlyOwner {
+        require(_address != address(0));
+        for (uint256 i = 0; i < wallets.length; i++) {
+            require(_address != wallets[i]);
+        }
+        wallets.push(_address);
+        emit WalletAdded(_address);
+    }
+
     // Delete wallet from wallets list
-    function delWallet(uint index) public onlyOwner {
-        require(index < wallets.length);
-        address remove = wallets[index];
-        inList[remove] = false;
-        for (uint i = index; i < wallets.length - 1; i++) {
+    function delWallet(uint256 index) public onlyOwner {
+        require (index < wallets.length);
+        address walletToRemove = wallets[index];
+        for (uint256 i = index; i < wallets.length - 1; i++) {
             wallets[i] = wallets[i + 1];
         }
         wallets.length--;
-        emit WalletRemoved(remove);
+        emit WalletRemoved(walletToRemove);
     }
 
     // finalizeCrowdsale issues tokens for the Team.
