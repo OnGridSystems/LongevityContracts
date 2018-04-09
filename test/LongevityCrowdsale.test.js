@@ -78,6 +78,14 @@ contract('LongevityCrowdsale', function (accounts) {
     it('should reject offchain purchase for non-cashiers', async function () {
       await this.cs.offChainPurchase(accounts[0], 10000, 1000, { from: accounts[0] }).should.be.rejectedWith(EVMRevert);
     });
+    it('validate discount percent for each phase', async function () {
+      (await this.cs.getDiscountPercent(this.phase0StartTime)).should.be.bignumber.equal(40);
+      (await this.cs.getDiscountPercent(this.phase0EndTime)).should.be.bignumber.equal(40);
+      (await this.cs.getDiscountPercent(this.phase1StartTime)).should.be.bignumber.equal(35);
+      (await this.cs.getDiscountPercent(this.phase1EndTime)).should.be.bignumber.equal(35);
+      (await this.cs.getDiscountPercent(this.phase2StartTime)).should.be.bignumber.equal(30);
+      (await this.cs.getDiscountPercent(this.phase2EndTime)).should.be.bignumber.equal(30);
+    });
 
     describe('after cashier added', function () {
       beforeEach(async function () {
@@ -110,8 +118,16 @@ contract('LongevityCrowdsale', function (accounts) {
       before(async function () {
         await increaseTimeTo(this.phase0StartTime);
       });
-      it('should accept payments', async function () {
-        await this.cs.send(ether(1)).should.be.fulfilled;
+      it('should reject payments less than 10USD', async function () {
+        await this.cs.send(ether(0.0218)).should.be.rejectedWith(EVMRevert);
+        await this.cs.buyTokens(accounts[3], { from: accounts[0], value: ether(0.0218) }).should.be.rejectedWith(EVMRevert);
+      });
+      it('should reject zero value transactions', async function () {
+        await this.cs.send().should.be.rejectedWith(EVMRevert);
+        await this.cs.buyTokens(accounts[3], { from: accounts[0]}).should.be.rejectedWith(EVMRevert);
+      });
+      it('should accept payments 10USD and more', async function () {
+        await this.cs.send(ether(0.0219)).should.be.fulfilled;
       });
       describe('with default single sink wallet', function () {
         it('should accept payments, split and mint correct amount of tokens', async function () {
@@ -291,6 +307,31 @@ contract('LongevityCrowdsale', function (accounts) {
       it('should reject payments', async function () {
         await this.cs.sendTransaction({ value: ether(1)}).should.be.rejectedWith(EVMRevert);
         await this.cs.buyTokens(accounts[3], { from: accounts[0], value: ether(1) }).should.be.rejectedWith(EVMRevert);
+      });
+    });
+  });
+
+  describe('migrate to another oracle', function () {
+    beforeEach(async function () {
+      this.newOracle = await PriceOracle.new(87654);
+    });
+    it('non-owner shouldnt be able to change oracle', async function () {
+      await this.cs.setOracle(this.newOracle.address,{from: accounts[1]}).should.be.rejectedWith(EVMRevert);
+    });
+    it('owner should be able to set new oracle', async function () {
+      const { logs } = await this.cs.setOracle(this.newOracle.address).should.be.fulfilled;
+      const event = logs.find(e => e.event === 'OracleChanged');
+      should.exist(event);
+    });
+    describe('after oracle changed', function () {
+      beforeEach(async function () {
+        await this.cs.setOracle(this.newOracle.address)
+      });
+      it('check view functions', async function () {
+        const USDcValue = await this.cs.calculateUSDcValue(ether(1));
+        USDcValue.should.be.bignumber.equal(87654);
+        const USDcPrice = await this.cs.getPriceUSDcETH();
+        USDcPrice.should.be.bignumber.equal(87654);
       });
     });
   });

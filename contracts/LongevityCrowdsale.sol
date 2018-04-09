@@ -297,7 +297,6 @@ contract LongevityCrowdsale {
     }
 
 
-
     // Delete wallet from wallets list
     function delWallet(uint index) onlyOwner public {
         require(index < wallets.length);
