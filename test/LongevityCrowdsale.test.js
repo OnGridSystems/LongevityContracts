@@ -344,6 +344,108 @@ contract('LongevityCrowdsale', function (accounts) {
     });
   });
 
+  describe('ownership tests', function () {
+    beforeEach(async function () {
+      await this.cs.addCashier(accounts[7]);
+      await this.cs.addWallet(accounts[6]);
+      await this.cs.addWallet(accounts[7]);
+      await this.cs.addPhase(this.phase0StartTime, this.phase0EndTime, this.phase0Discount);
+    });
+    describe('before ownership granted', function () {
+      it('shouldnt allow to set oracle', async function () {
+        await this.cs.setOracle(accounts[0],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to add owner', async function () {
+        await this.cs.addOwner(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to del owner', async function () {
+        await this.cs.delOwner(accounts[0],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to addCashier', async function () {
+        await this.cs.addCashier(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to delCashier', async function () {
+        await this.cs.delCashier(accounts[7],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to addWallet', async function () {
+        await this.cs.addWallet(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to delWallet', async function () {
+        await this.cs.delWallet(0,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to addPhase', async function () {
+        await this.cs.addPhase(1500000000, 1500000001, 23 ,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+      it('shouldnt allow to delPhase', async function () {
+        await this.cs.delPhase(0 ,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+      });
+    });
+    describe('after ownership granted', function () {
+      beforeEach(async function () {
+        await this.cs.addOwner(accounts[5]);
+      });
+      it('should allow to set oracle', async function () {
+        await this.cs.setOracle(accounts[0],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to add owner', async function () {
+        await this.cs.addOwner(accounts[5],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to del owner', async function () {
+        await this.cs.delOwner(accounts[0],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to addCashier', async function () {
+        await this.cs.addCashier(accounts[5],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to delCashier', async function () {
+        await this.cs.delCashier(accounts[7],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to addWallet', async function () {
+        await this.cs.addWallet(accounts[5],{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to delWallet', async function () {
+        await this.cs.delWallet(0,{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to addPhase', async function () {
+        await this.cs.addPhase(1500000000, 1500000001, 23 ,{ from: accounts[5] }).should.be.fulfilled;
+      });
+      it('should allow to delPhase', async function () {
+        await this.cs.delPhase(0 ,{ from: accounts[5] }).should.be.fulfilled;
+      });
+      describe('then revoked', function () {
+        beforeEach(async function () {
+          await this.cs.delOwner(accounts[5]);
+        });
+        it('shouldnt allow to set oracle', async function () {
+          await this.cs.setOracle(accounts[0],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to add owner', async function () {
+          await this.cs.addOwner(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to del owner', async function () {
+          await this.cs.delOwner(accounts[0],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to addCashier', async function () {
+          await this.cs.addCashier(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to delCashier', async function () {
+          await this.cs.delCashier(accounts[7],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to addWallet', async function () {
+          await this.cs.addWallet(accounts[5],{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to delWallet', async function () {
+          await this.cs.delWallet(0,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to addPhase', async function () {
+          await this.cs.addPhase(1500000000, 1500000001, 23 ,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+        it('shouldnt allow to delPhase', async function () {
+          await this.cs.delPhase(0 ,{ from: accounts[5] }).should.be.rejectedWith(EVMRevert);
+        });
+      });
+    });
+  });
+
   /*
   it('should be ended only after end', async function () {
     let ended = await this.crowdsale.hasEnded();
