@@ -309,11 +309,6 @@ contract LongevityCrowdsale {
         WalletRemoved(remove);
     }
 
-    // Return wallets array size
-    function getWalletsCount() public view returns (uint256) {
-        return wallets.length;
-    }
-
     // finalizeCrowdsale issues tokens for the Team.
     // Team gets 30/70 of harvested funds then token gets capped (upper emission boundary locked) to totalSupply * 2
     // The token split after finalization will be in % of total token cap:
