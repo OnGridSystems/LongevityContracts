@@ -1,5 +1,5 @@
 
-const EVMRevert = require('../zeppelin-solidity/test/helpers/EVMRevert.js');
+const EVMRevert = require('../test/helpers/EVMRevert.js');
 const BurnableTokenMock = artifacts.require('../mocks/LongevityTokenMock.sol');
 const BigNumber = web3.BigNumber;
 

@@ -1,4 +1,4 @@
-import EVMRevert from '../zeppelin-solidity/test/helpers/EVMRevert';
+import EVMRevert from '../test/helpers/EVMRevert';
 
 const BigNumber = web3.BigNumber;
 

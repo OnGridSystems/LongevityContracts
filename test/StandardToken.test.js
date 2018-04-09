@@ -1,5 +1,11 @@
+import assertRevert from './helpers/assertRevert';
 
-const assertRevert = require('../zeppelin-solidity/test/helpers/assertRevert');
+const BigNumber = web3.BigNumber;
+
+const should = require('chai')
+  .use(require('chai-as-promised'))
+  .use(require('chai-bignumber')(BigNumber))
+  .should();
 
 var StandardTokenMock = artifacts.require('../mocks/LongevityTokenMock.sol');
 

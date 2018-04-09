@@ -1,6 +1,6 @@
 
-import expectThrow from '../zeppelin-solidity/test/helpers/expectThrow';
-import ether from '../zeppelin-solidity/test/helpers/ether';
+import expectThrow from '../test/helpers/expectThrow';
+import ether from '../test/helpers/ether';
 
 var CappedToken = artifacts.require('../mocks/LongevityTokenMock.sol');
 

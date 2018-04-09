@@ -1,8 +1,8 @@
-import ether from '../zeppelin-solidity/test/helpers/ether';
-import { advanceBlock } from '../zeppelin-solidity/test/helpers/advanceToBlock';
-import { increaseTimeTo, duration } from '../zeppelin-solidity/test/helpers/increaseTime';
-import latestTime from '../zeppelin-solidity/test/helpers/latestTime';
-import EVMRevert from '../zeppelin-solidity/test/helpers/EVMRevert';
+import ether from '../test/helpers/ether';
+import { advanceBlock } from '../test/helpers/advanceToBlock';
+import { increaseTimeTo, duration } from '../test/helpers/increaseTime';
+import latestTime from '../test/helpers/latestTime';
+import EVMRevert from '../test/helpers/EVMRevert';
 
 const BigNumber = web3.BigNumber;
 

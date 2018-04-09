@@ -105,7 +105,7 @@ contract LongevityCrowdsale {
         weiRaised = weiRaised.add(weiAmount);
         USDcRaised = USDcRaised.add(calculateUSDcValue(weiRaised));
         token.mint(beneficiary, tokens);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, currentDiscountPercent, tokens);
+        emit TokenPurchase(msg.sender, beneficiary, weiAmount, currentDiscountPercent, tokens);
         forwardFunds();
     }
 
@@ -114,7 +114,7 @@ contract LongevityCrowdsale {
         require(beneficiary != address(0));
         USDcRaised = USDcRaised.add(USDcAmount);
         token.mint(beneficiary, tokensSold);
-        OffChainTokenPurchase(beneficiary, tokensSold, USDcAmount);
+        emit OffChainTokenPurchase(beneficiary, tokensSold, USDcAmount);
     }
 
     /**
@@ -133,7 +133,7 @@ contract LongevityCrowdsale {
     function setOracle(PriceOracleIface _oracle) public onlyOwner {
         require(oracle.priceUSDcETH() > 0);
         oracle = _oracle;
-        OracleChanged(oracle);
+        emit OracleChanged(oracle);
     }
 
     /**
@@ -142,7 +142,7 @@ contract LongevityCrowdsale {
      */
     function addOwner(address _address) onlyOwner public {
         owners[_address] = true;
-        OwnerAdded(_address);
+        emit OwnerAdded(_address);
     }
 
     /**
@@ -151,7 +151,7 @@ contract LongevityCrowdsale {
      */
     function delOwner(address _address) onlyOwner public {
         owners[_address] = false;
-        OwnerRemoved(_address);
+        emit OwnerRemoved(_address);
     }
 
     /**
@@ -168,7 +168,7 @@ contract LongevityCrowdsale {
      */
     function addCashier(address _address) onlyOwner public {
         cashiers[_address] = true;
-        CashierAdded(_address);
+        emit CashierAdded(_address);
     }
 
     /**
@@ -177,7 +177,7 @@ contract LongevityCrowdsale {
      */
     function delCashier(address _address) onlyOwner public {
         cashiers[_address] = false;
-        CashierRemoved(_address);
+        emit CashierRemoved(_address);
     }
 
     /**
@@ -219,7 +219,7 @@ contract LongevityCrowdsale {
         require(!inList[_address]);
         wallets.push(_address);
         inList[_address] = true;
-        WalletAdded(_address);
+        emit WalletAdded(_address);
     }
 
     /**
@@ -253,7 +253,7 @@ contract LongevityCrowdsale {
         require(validatePhaseDates(_startDate, _endDate));
         phases.push(Phase(_startDate, _endDate, _discountPercent));
         uint256 index = phases.length - 1;
-        PhaseAdded(msg.sender, index, _startDate, _endDate, _discountPercent);
+        emit PhaseAdded(msg.sender, index, _startDate, _endDate, _discountPercent);
     }
 
     /**
@@ -267,7 +267,7 @@ contract LongevityCrowdsale {
             phases[i] = phases[i+1];
         }
         phases.length--;
-        PhaseDeleted(msg.sender, index);
+        emit PhaseDeleted(msg.sender, index);
     }
 
     /**
@@ -306,7 +306,7 @@ contract LongevityCrowdsale {
             wallets[i] = wallets[i+1];
         }
         wallets.length--;
-        WalletRemoved(remove);
+        emit WalletRemoved(remove);
     }
 
     // finalizeCrowdsale issues tokens for the Team.

@@ -1,5 +1,5 @@
 
-import expectThrow from '../zeppelin-solidity/test/helpers/expectThrow';
+import expectThrow from '../test/helpers/expectThrow';
 var MintableToken = artifacts.require('../LongevityToken.sol');
 
 contract('Mintable', function (accounts) {

@@ -47,8 +47,8 @@ contract LongevityToken is StandardToken {
         passThroughTap(_amount);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        Mint(_to, _amount);
-        Transfer(address(0), _to, _amount);
+        emit Mint(_to, _amount);
+        emit Transfer(address(0), _to, _amount);
         return true;
     }
 
@@ -59,7 +59,7 @@ contract LongevityToken is StandardToken {
     function finishMinting() onlyOwner public returns (bool) {
         require(!mintingFinished);
         mintingFinished = true;
-        MintFinished();
+        emit MintFinished();
         return true;
     }
 
@@ -75,7 +75,7 @@ contract LongevityToken is StandardToken {
         address burner = msg.sender;
         balances[burner] = balances[burner].sub(_value);
         totalSupply = totalSupply.sub(_value);
-        Burn(burner, _value);
+        emit Burn(burner, _value);
     }
 
     /**
@@ -84,7 +84,7 @@ contract LongevityToken is StandardToken {
      */
     function addOwner(address _address) onlyOwner public {
         owners[_address] = true;
-        OwnerAdded(_address);
+        emit OwnerAdded(_address);
     }
 
     /**
@@ -93,7 +93,7 @@ contract LongevityToken is StandardToken {
      */
     function delOwner(address _address) onlyOwner public {
         owners[_address] = false;
-        OwnerRemoved(_address);
+        emit OwnerRemoved(_address);
     }
 
     /**
@@ -110,7 +110,7 @@ contract LongevityToken is StandardToken {
      */
     function addMinter(address _address) onlyOwner public {
         minters[_address] = true;
-        MinterAdded(_address);
+        emit MinterAdded(_address);
     }
 
     /**
@@ -119,7 +119,7 @@ contract LongevityToken is StandardToken {
      */
     function delMinter(address _address) onlyOwner public {
         minters[_address] = false;
-        MinterRemoved(_address);
+        emit MinterRemoved(_address);
     }
 
     /**
@@ -157,7 +157,7 @@ contract LongevityToken is StandardToken {
         mintTap.startTime = now;
         mintTap.tokensIssued = 0;
         mintTap.mintSpeed = _mintSpeed;
-        MintTapSet(mintTap.startTime, mintTap.mintSpeed);
+        emit MintTapSet(mintTap.startTime, mintTap.mintSpeed);
     }
 
     /**
@@ -169,6 +169,6 @@ contract LongevityToken is StandardToken {
         require(cap == 2**256 - 1);
         cap = totalSupply.mul(2);
         capFinalized = true;
-        SetCap(totalSupply, cap);
+        emit SetCap(totalSupply, cap);
     }
 }
