@@ -124,8 +124,8 @@ contract LongevityCrowdsale {
     }
 
     /**
-     * @dev Proxies current ETH balance request to the Oracle contract
-     * @return ETH price in USD cents
+     * @dev Returns current ETH price (proxies request to the Oracle contract)
+     * @return ETH price in USD cents for the current moment
      */
     function getPriceUSDcETH() public view returns (uint256) {
         require(oracle.priceUSDcETH() > 0);
@@ -133,8 +133,8 @@ contract LongevityCrowdsale {
     }
 
     /**
-     * @dev Allows to change Oracle address (source of ETH price)
-     * @param _oracle ETH price oracle where we get actual exchange rate
+     * @dev Changes Oracle address (source of ETH price)
+     * @param _oracle Oracle where contract gets actual exchange rate
      */
     function setOracle(PriceOracleIface _oracle) public onlyOwner {
         require(oracle.priceUSDcETH() > 0);
@@ -194,15 +194,23 @@ contract LongevityCrowdsale {
         _;
     }
 
-    // calculate deposit value in USD Cents
+    /**
+     * @dev Converts wei to USD cents by Oracle's rate
+     * @param weiAmount How much wei beneficiary is going to send
+     * @return Value in USD cents
+     */
     function calculateUSDcValue(uint256 weiAmount) public view returns (uint256) {
         uint256 priceUSDcETH = getPriceUSDcETH();
         uint256 valueUSDc = weiAmount.mul(priceUSDcETH).div(1 ether);
         return valueUSDc;
     }
 
-    // calculates how much tokens will beneficiary get
-    // for given amount of wei
+    /**
+     * @dev Calculates how much tokens will beneficiary get for given amount of wei with provided discount
+     * @param weiReceived  How much wei beneficiary is going to send
+     * @param discountPercent  % of discount
+     * @return Amount of tokens to be minted and sent to beneficiary
+     */
     function calculateTokenAmount(uint256 weiReceived, uint256 discountPercent) public view returns (uint256) {
         uint256 USDcReceived = calculateUSDcValue(weiReceived);
         uint256 tokensPerUSDc = 100;
@@ -215,13 +223,13 @@ contract LongevityCrowdsale {
      * @dev Checks if dates overlap with existing phases of the contract.
      * @param _startDate  Start date of the phase
      * @param _endDate    End date of the phase
-     * @return true if provided dates valid
+     * @return true if provided dates valid (new phase with these parameters can be added)
      */
     function validatePhaseDates(uint256 _startDate, uint256 _endDate) public view returns (bool) {
         if (_endDate <= _startDate) {
             return false;
         }
-        for (uint i = 0; i < phases.length; i++) {
+        for (uint256 i = 0; i < phases.length; i++) {
             if (_startDate >= phases[i].startDate && _startDate <= phases[i].endDate) {
                 return false;
             }
@@ -236,7 +244,7 @@ contract LongevityCrowdsale {
      * @dev Adds a new phase
      * @param _startDate  Start date of the phase
      * @param _endDate    End date of the phase
-     * @param _discountPercent  Price USD cents per token
+     * @param _discountPercent  Discount percent for the phase
      */
     function addPhase(uint256 _startDate, uint256 _endDate, uint256 _discountPercent) public onlyOwner {
         require(validatePhaseDates(_startDate, _endDate));
@@ -250,7 +258,7 @@ contract LongevityCrowdsale {
      * @param index Index of the phase
      */
     function delPhase(uint256 index) public onlyOwner {
-        require (index < phases.length);
+        require(index < phases.length);
         for (uint256 i = index; i < phases.length - 1; i++) {
             phases[i] = phases[i + 1];
         }
@@ -259,11 +267,12 @@ contract LongevityCrowdsale {
     }
 
     /**
-     * @dev Return current phase index
-     * @return current phase id
+     * @dev Return phase index for the given time
+     * @param unixtime Time in unixtime format
+     * @return phase index
      */
     function getPhaseIndex(uint256 unixtime) public view returns (uint256) {
-        for (uint i = 0; i < phases.length; i++) {
+        for (uint256 i = 0; i < phases.length; i++) {
             if (phases[i].startDate <= unixtime && unixtime <= phases[i].endDate) {
                 return i;
             }
@@ -271,20 +280,35 @@ contract LongevityCrowdsale {
         revert();
     }
 
+    /**
+     * @dev Returns current phase index
+     * @return index of the currentPhase
+     */
     function getCurrentPhaseIndex() public view returns (uint256) {
         return getPhaseIndex(now);
     }
 
-    //tested
+    /**
+     * @dev Returns discount percent for givan datetime
+     * @param unixtime Time in unixtime format
+     * @return The discount for the requested time %
+     */
     function getDiscountPercent(uint256 unixtime) public view returns (uint256) {
         return phases[getPhaseIndex(unixtime)].discountPercent;
     }
 
+    /**
+     * @dev Returns current discount percent
+     * @return The current discount %
+     */
     function getCurrentDiscountPercent() public view returns (uint256) {
         return phases[getCurrentPhaseIndex()].discountPercent;
     }
 
-    // Add wallet address to wallets list
+    /**
+     * @dev Add collecting wallet address to the list
+     * @param _address Address of the wallet
+     */
     function addWallet(address _address) public onlyOwner {
         require(_address != address(0));
         for (uint256 i = 0; i < wallets.length; i++) {
@@ -294,9 +318,12 @@ contract LongevityCrowdsale {
         emit WalletAdded(_address);
     }
 
-    // Delete wallet from wallets list
+    /**
+     * @dev Delete wallet by its index
+     * @param index Index of the wallet in the list
+     */
     function delWallet(uint256 index) public onlyOwner {
-        require (index < wallets.length);
+        require(index < wallets.length);
         address walletToRemove = wallets[index];
         for (uint256 i = index; i < wallets.length - 1; i++) {
             wallets[i] = wallets[i + 1];
@@ -305,12 +332,14 @@ contract LongevityCrowdsale {
         emit WalletRemoved(walletToRemove);
     }
 
-    // finalizeCrowdsale issues tokens for the Team.
-    // Team gets 30/70 of harvested funds then token gets capped (upper emission boundary locked) to totalSupply * 2
-    // The token split after finalization will be in % of total token cap:
-    // 1. Tokens issued and distributed during pre-ICO and ICO = 35%
-    // 2. Tokens issued for the team on ICO finalization = 30%
-    // 3. Tokens for future in-app emission = 35%
+    /**
+     * @dev finalizeCrowdsale issues tokens for the Team and sets Cap.
+     * The team gets 30/70 of harvested funds then token gets capped (upper emission boundary locked) to totalSupply * 2
+     * The token distribution after finalization will be in % of total token cap at the finalization moment:
+     * 1. Tokens issued and distributed during pre-ICO and ICO = 35%
+     * 2. Tokens issued for the team on ICO finalization = 30%
+     * 3. Tokens for future in-app emission = 35%
+     */
     function finalizeCrowdsale(address _teamAccount) public onlyOwner {
         require(!finalized);
         uint256 soldTokens = token.totalSupply();
@@ -320,11 +349,15 @@ contract LongevityCrowdsale {
         finalized = true;
     }
 
-    // send ether to the fund collection wallet
+
+    /**
+     * @dev forwardFunds splits received funds equally between wallets
+     * and sends receiwed ethers to them.
+     */
     function forwardFunds() internal {
-        uint256 value = msg.value / wallets.length;
-        uint256 rest = msg.value - (value * wallets.length);
-        for (uint i = 0; i < wallets.length - 1; i++) {
+        uint256 value = msg.value.div(wallets.length);
+        uint256 rest = msg.value.sub(value.mul(wallets.length));
+        for (uint256 i = 0; i < wallets.length - 1; i++) {
             wallets[i].transfer(value);
         }
         wallets[wallets.length - 1].transfer(value + rest);
