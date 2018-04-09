@@ -323,7 +323,7 @@ contract LongevityCrowdsale {
     function finalizeCrowdsale(address _teamAccount) onlyOwner public {
         require(!finalized);
         uint256 soldTokens = token.totalSupply();
-        uint256 teamTokens = soldTokens.div(70).mul(30);
+        uint256 teamTokens = soldTokens.mul(30).div(70);
         token.mint(_teamAccount, teamTokens);
         token.setCap();
         finalized = true;

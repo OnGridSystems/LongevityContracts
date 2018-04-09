@@ -293,6 +293,40 @@ contract('LongevityCrowdsale', function (accounts) {
             sinkWallet1Increase.should.be.bignumber.equal(sinkWallet2Increase);
             sinkWallet1Increase.plus(sinkWallet2Increase).plus(sinkWallet3Increase).should.be.bignumber.equal(ether(1));
           });
+          describe('Finalize crowdsale', function () {
+            beforeEach(async function () {
+              await this.tkn.addMinter(accounts[0]);
+              await this.tkn.addOwner(this.cs.address);
+              await this.tkn.mint(accounts[8], 7000000);
+            });
+            it('checking finalize machinery', async function () {
+              const tSupplyBefore = await this.tkn.totalSupply();
+              const teamAcct = accounts[7];
+              const teamBalanceBefore = await this.tkn.balanceOf(teamAcct);
+              (await this.cs.finalized()).should.be.equal(false);
+              (await this.tkn.capFinalized()).should.be.equal(false);
+              await this.cs.finalizeCrowdsale(teamAcct).should.be.fulfilled;
+              const tSupplyAfter = await this.tkn.totalSupply();
+              const teamBalanceAfter = await this.tkn.balanceOf(teamAcct);
+              const tCap = await this.tkn.cap();
+              const teamBonus = teamBalanceAfter.minus(teamBalanceBefore)
+              tSupplyBefore.mul(30).div(70).should.be.bignumber.equal(teamBonus);
+              tSupplyAfter.should.be.bignumber.equal(teamBonus.plus(tSupplyBefore));
+              tCap.should.be.bignumber.equal(tSupplyAfter.mul(2));
+              (await this.cs.finalized()).should.be.equal(true);
+              (await this.tkn.capFinalized()).should.be.equal(true);
+            });
+            describe('after finalization', function () {
+              beforeEach(async function () {
+                await this.cs.finalizeCrowdsale(accounts[7]);
+              });
+              it('unable to finalize again', async function () {
+                (await this.cs.finalized()).should.be.equal(true);
+                (await this.tkn.capFinalized()).should.be.equal(true);
+                await this.cs.finalizeCrowdsale(accounts[7]).should.be.rejectedWith(EVMRevert);
+              });
+            });
+          });
         });
       });
       });
