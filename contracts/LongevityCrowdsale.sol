@@ -1,8 +1,9 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.18; // solhint-disable-line compiler-fixed
 
 import "./math/SafeMath.sol";
 import "./LongevityToken.sol";
 import "./PriceOracleInterface.sol";
+
 
 /**
  * @title LongevityCrowdsale
@@ -19,12 +20,12 @@ contract LongevityCrowdsale {
     LongevityToken public token;
 
     // Crowdsale administrators
-    mapping (address => bool) public owners;
+    mapping(address => bool) public owners;
 
     // Cashiers responsible for manual token issuance
-    mapping (address => bool) public cashiers;
+    mapping(address => bool) public cashiers;
 
-    // ETH/USD price source
+    // ETH/USD on-chain price source
     PriceOracleIface public oracle;
 
     struct Phase {
@@ -32,6 +33,7 @@ contract LongevityCrowdsale {
         uint256 endDate;
         uint256 discountPercent;
     }
+
     Phase[] public phases;
 
     // Minimum Deposit in USD cents
@@ -40,13 +42,14 @@ contract LongevityCrowdsale {
     bool public finalized = false;
 
     // Amount of raised Ethers (in wei).
-    // And raised Dollars in cents
     uint256 public weiRaised;
+
+    // Amount of raised Dollars in cents
     uint256 public USDcRaised;
 
-    // Wallets management
+    // Wallets array
     address[] public wallets;
-    mapping (address => bool) inList;
+    mapping(address => bool) private inList;
 
     /**
      * event for token purchase logging
@@ -56,7 +59,9 @@ contract LongevityCrowdsale {
      * @param discountPercent free tokens percantage for the phase
      * @param amount amount of tokens purchased
      */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 discountPercent, uint256 amount);
+    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value,
+        uint256 discountPercent, uint256 amount);
+
     event OffChainTokenPurchase(address indexed beneficiary, uint256 tokensSold, uint256 USDcAmount);
 
     // event for wallet update
@@ -72,7 +77,9 @@ contract LongevityCrowdsale {
     event CashierRemoved(address indexed removedBot);
 
     // phase editor events
-    event PhaseAdded(address indexed sender, uint256 index, uint256 startDate, uint256 endDate, uint256 discountPercent);
+    event PhaseAdded(address indexed sender, uint256 index, uint256 startDate,
+        uint256 endDate, uint256 discountPercent);
+
     event PhaseDeleted(address indexed sender, uint256 index);
 
     // Oracle change event
@@ -88,7 +95,7 @@ contract LongevityCrowdsale {
     }
 
     // fallback function can be used to buy tokens
-    function () external payable {
+    function() external payable {
         buyTokens(msg.sender);
     }
 
@@ -101,7 +108,7 @@ contract LongevityCrowdsale {
         require(calculateUSDcValue(weiAmount) >= minContributionUSDc);
         // calculate token amount to be created
         uint256 tokens = calculateTokenAmount(weiAmount, currentDiscountPercent);
-        
+
         weiRaised = weiRaised.add(weiAmount);
         USDcRaised = USDcRaised.add(calculateUSDcValue(weiRaised));
         token.mint(beneficiary, tokens);
@@ -110,7 +117,7 @@ contract LongevityCrowdsale {
     }
 
     // Sell any amount of tokens for cash or CryptoCurrency
-    function offChainPurchase(address beneficiary, uint256 tokensSold, uint256 USDcAmount) onlyCashier public {
+    function offChainPurchase(address beneficiary, uint256 tokensSold, uint256 USDcAmount) public onlyCashier {
         require(beneficiary != address(0));
         USDcRaised = USDcRaised.add(USDcAmount);
         token.mint(beneficiary, tokensSold);
@@ -121,7 +128,7 @@ contract LongevityCrowdsale {
      * @dev Proxies current ETH balance request to the Oracle contract
      * @return ETH price in USD cents
      */
-    function getPriceUSDcETH() public view returns(uint256) {
+    function getPriceUSDcETH() public view returns (uint256) {
         require(oracle.priceUSDcETH() > 0);
         return oracle.priceUSDcETH();
     }
@@ -140,7 +147,7 @@ contract LongevityCrowdsale {
      * @dev Adds administrative role to address
      * @param _address The address that will get administrative privileges
      */
-    function addOwner(address _address) onlyOwner public {
+    function addOwner(address _address) public onlyOwner {
         owners[_address] = true;
         emit OwnerAdded(_address);
     }
@@ -149,7 +156,7 @@ contract LongevityCrowdsale {
      * @dev Removes administrative role from address
      * @param _address The address to remove administrative privileges from
      */
-    function delOwner(address _address) onlyOwner public {
+    function delOwner(address _address) public onlyOwner {
         owners[_address] = false;
         emit OwnerRemoved(_address);
     }
@@ -166,7 +173,7 @@ contract LongevityCrowdsale {
      * @dev Adds cashier account responsible for manual token issuance
      * @param _address The address of the Cashier
      */
-    function addCashier(address _address) onlyOwner public {
+    function addCashier(address _address) public onlyOwner {
         cashiers[_address] = true;
         emit CashierAdded(_address);
     }
@@ -175,7 +182,7 @@ contract LongevityCrowdsale {
      * @dev Removes cashier account responsible for manual token issuance
      * @param _address The address of the Cashier
      */
-    function delCashier(address _address) onlyOwner public {
+    function delCashier(address _address) public onlyOwner {
         cashiers[_address] = false;
         emit CashierRemoved(_address);
     }
@@ -199,23 +206,14 @@ contract LongevityCrowdsale {
     // for given amount of wei
     function calculateTokenAmount(uint256 weiReceived, uint256 discountPercent) public view returns (uint256) {
         uint256 USDcReceived = calculateUSDcValue(weiReceived);
-        uint256 tokensPerUSDc = 100; // tokens per USD cent without discount
-        uint256 pricePercent = SafeMath.sub(100,discountPercent);
+        uint256 tokensPerUSDc = 100;
+        // tokens per USD cent without discount
+        uint256 pricePercent = SafeMath.sub(100, discountPercent);
         return USDcReceived.mul(tokensPerUSDc).mul(100).div(pricePercent);
     }
 
-    // send ether to the fund collection wallet
-    function forwardFunds() internal {
-        uint256 value = msg.value / wallets.length;
-        uint256 rest = msg.value - (value * wallets.length);
-        for (uint i = 0; i < wallets.length - 1; i++) {
-            wallets[i].transfer(value);
-        }
-        wallets[wallets.length - 1].transfer(value + rest);
-    }
-
     // Add wallet address to wallets list
-    function addWallet(address _address) onlyOwner public {
+    function addWallet(address _address) public onlyOwner {
         require(!inList[_address]);
         wallets.push(_address);
         inList[_address] = true;
@@ -228,7 +226,7 @@ contract LongevityCrowdsale {
      * @param _endDate    End date of the phase
      * @return true if provided dates valid
      */
-    function validatePhaseDates(uint256 _startDate, uint256 _endDate) view public returns (bool) {
+    function validatePhaseDates(uint256 _startDate, uint256 _endDate) public view returns (bool) {
         if (_endDate <= _startDate) {
             return false;
         }
@@ -263,8 +261,8 @@ contract LongevityCrowdsale {
     function delPhase(uint256 index) public onlyOwner {
         if (index >= phases.length) return;
 
-        for (uint i = index; i<phases.length-1; i++){
-            phases[i] = phases[i+1];
+        for (uint i = index; i < phases.length - 1; i++) {
+            phases[i] = phases[i + 1];
         }
         phases.length--;
         emit PhaseDeleted(msg.sender, index);
@@ -274,7 +272,7 @@ contract LongevityCrowdsale {
      * @dev Return current phase index
      * @return current phase id
      */
-    function getPhaseIndex(uint256 unixtime) view public returns (uint256) {
+    function getPhaseIndex(uint256 unixtime) public view returns (uint256) {
         for (uint i = 0; i < phases.length; i++) {
             if (phases[i].startDate <= unixtime && unixtime <= phases[i].endDate) {
                 return i;
@@ -283,27 +281,26 @@ contract LongevityCrowdsale {
         revert();
     }
 
-    function getCurrentPhaseIndex() view public returns (uint256) {
+    function getCurrentPhaseIndex() public view returns (uint256) {
         return getPhaseIndex(now);
     }
 
     //tested
-    function getDiscountPercent(uint256 unixtime) view public returns (uint256) {
+    function getDiscountPercent(uint256 unixtime) public view returns (uint256) {
         return phases[getPhaseIndex(unixtime)].discountPercent;
     }
 
-    function getCurrentDiscountPercent() view public returns (uint256) {
+    function getCurrentDiscountPercent() public view returns (uint256) {
         return phases[getCurrentPhaseIndex()].discountPercent;
     }
 
-
     // Delete wallet from wallets list
-    function delWallet(uint index) onlyOwner public {
+    function delWallet(uint index) public onlyOwner {
         require(index < wallets.length);
         address remove = wallets[index];
         inList[remove] = false;
-        for (uint i = index; i < wallets.length-1; i++) {
-            wallets[i] = wallets[i+1];
+        for (uint i = index; i < wallets.length - 1; i++) {
+            wallets[i] = wallets[i + 1];
         }
         wallets.length--;
         emit WalletRemoved(remove);
@@ -315,12 +312,22 @@ contract LongevityCrowdsale {
     // 1. Tokens issued and distributed during pre-ICO and ICO = 35%
     // 2. Tokens issued for the team on ICO finalization = 30%
     // 3. Tokens for future in-app emission = 35%
-    function finalizeCrowdsale(address _teamAccount) onlyOwner public {
+    function finalizeCrowdsale(address _teamAccount) public onlyOwner {
         require(!finalized);
         uint256 soldTokens = token.totalSupply();
         uint256 teamTokens = soldTokens.mul(30).div(70);
         token.mint(_teamAccount, teamTokens);
         token.setCap();
         finalized = true;
+    }
+
+    // send ether to the fund collection wallet
+    function forwardFunds() internal {
+        uint256 value = msg.value / wallets.length;
+        uint256 rest = msg.value - (value * wallets.length);
+        for (uint i = 0; i < wallets.length - 1; i++) {
+            wallets[i].transfer(value);
+        }
+        wallets[wallets.length - 1].transfer(value + rest);
     }
 }

@@ -9,14 +9,14 @@ pragma solidity ^0.4.18;
  */
 library Roles {
     struct Role {
-        mapping (address => bool) bearer;
+        mapping(address => bool) bearer;
     }
 
     /**
      * @dev give an address access to this role
      */
     function add(Role storage role, address addr)
-        internal
+    internal
     {
         role.bearer[addr] = true;
     }
@@ -25,7 +25,7 @@ library Roles {
      * @dev remove an address' access to this role
      */
     function remove(Role storage role, address addr)
-        internal
+    internal
     {
         role.bearer[addr] = false;
     }
@@ -35,8 +35,8 @@ library Roles {
      * // reverts
      */
     function check(Role storage role, address addr)
-        view
-        internal
+    view
+    internal
     {
         require(has(role, addr));
     }
@@ -46,9 +46,9 @@ library Roles {
      * @return bool
      */
     function has(Role storage role, address addr)
-        view
-        internal
-        returns (bool)
+    view
+    internal
+    returns (bool)
     {
         return role.bearer[addr];
     }

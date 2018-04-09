@@ -17,7 +17,7 @@ import './Roles.sol';
 contract RBAC {
     using Roles for Roles.Role;
 
-    mapping (string => Roles.Role) private roles;
+    mapping(string => Roles.Role) private roles;
 
     event RoleAdded(address addr, string roleName);
     event RoleRemoved(address addr, string roleName);
@@ -31,7 +31,7 @@ contract RBAC {
      * @dev constructor. Sets msg.sender as admin by default
      */
     function RBAC()
-        public
+    public
     {
         addRole(msg.sender, ROLE_ADMIN);
     }
@@ -42,7 +42,7 @@ contract RBAC {
      * @param roleName the name of the role
      */
     function addRole(address addr, string roleName)
-        internal
+    internal
     {
         roles[roleName].add(addr);
         emit RoleAdded(addr, roleName);
@@ -54,7 +54,7 @@ contract RBAC {
      * @param roleName the name of the role
      */
     function removeRole(address addr, string roleName)
-        internal
+    internal
     {
         roles[roleName].remove(addr);
         emit RoleRemoved(addr, roleName);
@@ -67,8 +67,8 @@ contract RBAC {
      * // reverts
      */
     function checkRole(address addr, string roleName)
-        view
-        public
+    view
+    public
     {
         roles[roleName].check(addr);
     }
@@ -80,9 +80,9 @@ contract RBAC {
      * @return bool
      */
     function hasRole(address addr, string roleName)
-        view
-        public
-        returns (bool)
+    view
+    public
+    returns (bool)
     {
         return roles[roleName].has(addr);
     }
@@ -93,8 +93,8 @@ contract RBAC {
      * @param roleName the name of the role
      */
     function adminAddRole(address addr, string roleName)
-        onlyAdmin
-        public
+    onlyAdmin
+    public
     {
         addRole(addr, roleName);
     }
@@ -105,8 +105,8 @@ contract RBAC {
      * @param roleName the name of the role
      */
     function adminRemoveRole(address addr, string roleName)
-        onlyAdmin
-        public
+    onlyAdmin
+    public
     {
         removeRole(addr, roleName);
     }

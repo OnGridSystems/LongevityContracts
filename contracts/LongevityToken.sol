@@ -8,16 +8,18 @@ contract LongevityToken is StandardToken {
     string public name = "Longevity";
     string public symbol = "LTY";
     uint8 public decimals = 2;
-    uint256 public cap = 2**256 - 1; // maximum possible uint256. Decreased on finalization
+    uint256 public cap = 2 ** 256 - 1; // maximum possible uint256. Decreased on finalization
     bool public mintingFinished = false;
-    mapping (address => bool) owners;
-    mapping (address => bool) minters;
+    mapping(address => bool) public owners;
+    mapping(address => bool) public minters;
+
     // tap to limit mint speed
     struct Tap {
         uint256 startTime; // reference time point to start measuring
         uint256 tokensIssued; // how much tokens issued from startTime
         uint256 mintSpeed; // token fractions per second
     }
+
     Tap public mintTap;
     bool public capFinalized = false;
 
@@ -41,7 +43,7 @@ contract LongevityToken is StandardToken {
      * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address _to, uint256 _amount) onlyMinter public returns (bool) {
+    function mint(address _to, uint256 _amount) public onlyMinter returns (bool) {
         require(!mintingFinished);
         require(totalSupply.add(_amount) <= cap);
         passThroughTap(_amount);
@@ -56,7 +58,7 @@ contract LongevityToken is StandardToken {
      * @dev Function to stop minting new tokens.
      * @return True if the operation was successful.
      */
-    function finishMinting() onlyOwner public returns (bool) {
+    function finishMinting() public onlyOwner returns (bool) {
         require(!mintingFinished);
         mintingFinished = true;
         emit MintFinished();
@@ -82,7 +84,7 @@ contract LongevityToken is StandardToken {
      * @dev Adds administrative role to address
      * @param _address The address that will get administrative privileges
      */
-    function addOwner(address _address) onlyOwner public {
+    function addOwner(address _address) public onlyOwner {
         owners[_address] = true;
         emit OwnerAdded(_address);
     }
@@ -91,7 +93,7 @@ contract LongevityToken is StandardToken {
      * @dev Removes administrative role from address
      * @param _address The address to remove administrative privileges from
      */
-    function delOwner(address _address) onlyOwner public {
+    function delOwner(address _address) public onlyOwner {
         owners[_address] = false;
         emit OwnerRemoved(_address);
     }
@@ -108,7 +110,7 @@ contract LongevityToken is StandardToken {
      * @dev Adds minter role to address (able to create new tokens)
      * @param _address The address that will get minter privileges
      */
-    function addMinter(address _address) onlyOwner public {
+    function addMinter(address _address) public onlyOwner {
         minters[_address] = true;
         emit MinterAdded(_address);
     }
@@ -117,7 +119,7 @@ contract LongevityToken is StandardToken {
      * @dev Removes minter role from address
      * @param _address The address to remove minter privileges
      */
-    function delMinter(address _address) onlyOwner public {
+    function delMinter(address _address) public onlyOwner {
         minters[_address] = false;
         emit MinterRemoved(_address);
     }
@@ -128,15 +130,6 @@ contract LongevityToken is StandardToken {
     modifier onlyMinter() {
         require(minters[msg.sender]);
         _;
-    }
-
-    /**
-     * @dev passThroughTap allows minting tokens within the defined speed limit.
-     * Throws if requested more than allowed.
-     */
-    function passThroughTap(uint256 _tokensRequested) internal {
-        require(_tokensRequested <= getTapRemaining());
-        mintTap.tokensIssued = mintTap.tokensIssued.add(_tokensRequested);
     }
 
     /**
@@ -153,7 +146,7 @@ contract LongevityToken is StandardToken {
      * @dev (Re)sets mint tap parameters
      * @param _mintSpeed Allowed token amount to mint per second
      */
-    function setMintTap(uint256 _mintSpeed) onlyOwner public {
+    function setMintTap(uint256 _mintSpeed) public onlyOwner {
         mintTap.startTime = now;
         mintTap.tokensIssued = 0;
         mintTap.mintSpeed = _mintSpeed;
@@ -164,11 +157,20 @@ contract LongevityToken is StandardToken {
      * @dev sets token Cap (maximum possible totalSupply) on Crowdsale finalization
      * Cap will be set to (sold tokens + team tokens) * 2
      */
-    function setCap() onlyOwner public {
+    function setCap() public onlyOwner {
         require(!capFinalized);
-        require(cap == 2**256 - 1);
+        require(cap == 2 ** 256 - 1);
         cap = totalSupply.mul(2);
         capFinalized = true;
         emit SetCap(totalSupply, cap);
+    }
+
+    /**
+     * @dev passThroughTap allows minting tokens within the defined speed limit.
+     * Throws if requested more than allowed.
+     */
+    function passThroughTap(uint256 _tokensRequested) internal {
+        require(_tokensRequested <= getTapRemaining());
+        mintTap.tokensIssued = mintTap.tokensIssued.add(_tokensRequested);
     }
 }
