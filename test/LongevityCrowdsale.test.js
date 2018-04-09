@@ -71,6 +71,14 @@ contract('LongevityCrowdsale', function (accounts) {
       await this.cs.addPhase(this.phase1StartTime, this.phase1EndTime, this.phase1Discount);
       await this.cs.addPhase(this.phase2StartTime, this.phase2EndTime, this.phase2Discount);
     });
+    it('validatePhaseDates for different combinations', async function () {
+      (await this.cs.validatePhaseDates(1500000000, 1500000000)).should.be.equal(false);
+      (await this.cs.validatePhaseDates(1500000001, 1500000000)).should.be.equal(false);
+      (await this.cs.validatePhaseDates(1500000000, 1500000001)).should.be.equal(true);
+      (await this.cs.validatePhaseDates(this.phase0StartTime + 1, this.phase0EndTime - 1)).should.be.equal(false);
+      (await this.cs.validatePhaseDates(this.phase0EndTime - 1, this.phase1StartTime + 1)).should.be.equal(false);
+      (await this.cs.validatePhaseDates(1500000000, this.phase1StartTime + 1)).should.be.equal(false);
+    });
     it('should reject payments before phase 0 start', async function () {
       await this.cs.send(ether(1)).should.be.rejectedWith(EVMRevert);
       await this.cs.buyTokens(accounts[3], { from: accounts[0], value: ether(1) }).should.be.rejectedWith(EVMRevert);
